@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CJ Traffic · Intranet Operativa</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+      }
+    }
+  }
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #171717; }
+  ::-webkit-scrollbar-thumb { background: #404040; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #525252; }
+  .kanban-col { min-width: 240px; }
+  .toast-enter { animation: toastIn .25s ease-out; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .pulse-red { animation: pulseRed 1.6s ease-in-out infinite; }
+  @keyframes pulseRed { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.35); } 50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); } }
+  /* Sub-navegación por pestañas dentro de cada módulo */
+  .subtab { color:#a3a3a3; border-bottom:2px solid transparent; padding:.55rem .9rem; font-size:.8rem; font-weight:600; white-space:nowrap; }
+  .subtab:hover { color:#e5e5e5; }
+  .subtab.active { color:#fbbf24; border-bottom-color:#f59e0b; }
+  .tabpane { display:none; }
+  .tabpane.active { display:block; }
+  .gantt-grid { background-image: linear-gradient(90deg, rgba(64,64,64,.25) 1px, transparent 1px); }
+</style>
+</head>
+<body class="bg-neutral-950 text-neutral-200 font-sans antialiased h-screen overflow-hidden">
+
+<div class="flex h-screen">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="w-64 shrink-0 bg-neutral-900 border-r border-neutral-800 flex flex-col">
+    <div class="px-5 py-5 border-b border-neutral-800 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center font-extrabold text-neutral-950 text-lg shadow-lg shadow-amber-500/20">CJ</div>
+      <div>
+        <p class="font-bold text-neutral-100 leading-tight">CJ Traffic</p>
+        <p class="text-[11px] text-neutral-400 tracking-wide uppercase">Intranet Operativa</p>
+      </div>
+    </div>
+
+    <nav id="sidebarNav" class="flex-1 overflow-y-auto px-3 py-4 space-y-1 text-sm">
+      <p class="px-3 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-widest text-neutral-500">Módulos</p>
+
+      <button data-view="inicio" data-roles="gerencia,jefatura,coordinador,bodega,desarrollo,firmware,tecnico" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-800 text-neutral-300">
+        <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Inicio
+      </button>
+      <button data-view="obras" data-roles="gerencia,jefatura,coordinador,contabilidad" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-800 text-neutral-300">
+        <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg> Obras y Proyectos
+      </button>
+      <button data-view="bodega" data-roles="gerencia,jefatura,coordinador,bodega,tecnico,desarrollo,firmware" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-800 text-neutral-300">
+        <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Bodega y Despachos
+        <span id="navBodegaBadge" class="ml-auto hidden text-[10px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full"></span>
+      </button>
+      <button data-view="cubicacion" data-roles="gerencia" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-800 text-neutral-300">
+        <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/></svg> Cubicación
+        <span class="ml-auto text-[10px] font-bold bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded-full"><svg class="w-3 h-3 inline -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+      </button>
+      <button data-view="finanzas" data-roles="gerencia,contabilidad" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-800 text-neutral-300">
+        <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><circle cx="8" cy="15" r="1"/></svg> Finanzas y Contabilidad
+      </button>
+      <button data-view="taller" data-roles="gerencia,jefatura,firmware,tecnico,desarrollo" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-800 text-neutral-300">
+        <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> Taller y Mantención
+      </button>
+      <button data-view="firmware" data-roles="gerencia,jefatura,firmware,desarrollo,tecnico" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-800 text-neutral-300">
+        <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></svg> Firmware Controladores
+      </button>
+      <button data-view="iot" data-roles="gerencia,jefatura,desarrollo" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-800 text-neutral-300">
+        <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg> Infraestructura IoT
+      </button>
+      <button data-view="agenda" data-roles="gerencia,jefatura,tecnico,firmware" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-neutral-800 text-neutral-300">
+        <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg> Agenda Diaria
+      </button>
+    </nav>
+
+    <div class="px-4 py-4 border-t border-neutral-800">
+      <div class="flex items-center gap-3">
+        <div id="userAvatar" class="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white">JS</div>
+        <div class="min-w-0">
+          <p id="userName" class="text-sm font-semibold text-neutral-100 truncate">Javier Smith</p>
+          <p id="userRoleLabel" class="text-[11px] text-neutral-400 truncate">Gerencia / Subgerencia</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- HEADER -->
+    <header class="h-16 shrink-0 bg-neutral-900/80 backdrop-blur border-b border-neutral-800 flex items-center justify-between px-6 gap-4">
+      <h1 id="viewTitle" class="text-lg font-bold text-neutral-100">Obras y Proyectos</h1>
+      <div class="flex items-center gap-4">
+        <div class="hidden md:flex items-center gap-2 text-xs text-neutral-500">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Jueves 12 Jun 2026
+        </div>
+        <div class="flex items-center gap-2 bg-neutral-800 border border-neutral-700 rounded-lg pl-3 pr-1 py-1">
+          <span class="text-[11px] uppercase tracking-wider text-amber-400 font-semibold">Simulador de Rol</span>
+          <select id="roleSelect" class="bg-neutral-900 text-neutral-100 text-sm rounded-md px-2 py-1.5 border border-neutral-700 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
+            <option value="gerencia">Gerencia · Javier Smith</option>
+            <option value="jefatura">Jefatura Mantención · Víctor Aburto</option>
+            <option value="coordinador">Coordinación Obras · Carlos Salas</option>
+            <option value="bodega">Bodega · Juan Herrera</option>
+            <option value="contabilidad">Contabilidad · Claudio Yáñez</option>
+            <option value="desarrollo">Desarrollo Tec. · Elías Guajardo</option>
+            <option value="firmware">Prog. Firmware · Febe Benecke</option>
+            <option value="tecnico">Técnico Taller · Pablo Carreño</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="flex-1 overflow-y-auto p-6 space-y-6">
+
+      <!-- ════════════ VISTA: INICIO (HUB CENTRAL) ════════════ -->
+      <section id="view-inicio" class="view hidden space-y-6">
+        <div>
+          <h2 class="text-2xl font-extrabold text-neutral-100">Bienvenido a la Intranet de Operaciones</h2>
+          <p class="text-sm text-neutral-400 mt-1">Punto de partida y accesos rápidos del ecosistema tecnológico de CJ Traffic.</p>
+        </div>
+
+        <!-- Accesos rápidos (visibles para todos los roles) -->
+        <div class="grid md:grid-cols-3 gap-5">
+          <button onclick="abrirSistema('BUK · Portal de Personal')" class="text-left bg-gradient-to-br from-indigo-950/70 to-neutral-900 border border-indigo-500/30 hover:border-indigo-400/60 rounded-2xl p-5 transition group">
+            <div class="flex items-start justify-between mb-6">
+              <span class="bg-indigo-600/30 text-indigo-300 font-extrabold text-sm px-3 py-2 rounded-lg">BUK</span>
+              <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-400">RRHH y Finanzas</span>
+            </div>
+            <p class="text-lg font-bold text-indigo-200 group-hover:text-indigo-100">Portal de Personal</p>
+            <p class="text-xs text-neutral-400 mt-1.5 leading-relaxed">Solicitud de vacaciones, liquidaciones de sueldo, días administrativos y licencias.</p>
+          </button>
+          <button onclick="abrirSistema('CJ SMART · Monitoreo de Red')" class="text-left bg-gradient-to-br from-emerald-950/70 to-neutral-900 border border-emerald-500/30 hover:border-emerald-400/60 rounded-2xl p-5 transition group">
+            <div class="flex items-start justify-between mb-6">
+              <span class="bg-emerald-600/30 text-emerald-300 font-extrabold text-sm px-3 py-2 rounded-lg">CJ SMART</span>
+              <span class="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Telemetría IoT</span>
+            </div>
+            <p class="text-lg font-bold text-emerald-200 group-hover:text-emerald-100">Monitoreo de Red</p>
+            <p class="text-xs text-neutral-400 mt-1.5 leading-relaxed">Verificación de conectividad en tiempo real, alarmas operativas y mapas de cruces viales.</p>
+          </button>
+          <button onclick="abrirSistema('CJ FLEET · Control de Flotas')" class="text-left bg-gradient-to-br from-amber-950/70 to-neutral-900 border border-amber-500/30 hover:border-amber-400/60 rounded-2xl p-5 transition group">
+            <div class="flex items-start justify-between mb-6">
+              <span class="bg-amber-600/30 text-amber-300 font-extrabold text-sm px-3 py-2 rounded-lg">CJ FLEET</span>
+              <span class="text-[10px] font-bold uppercase tracking-widest text-amber-400">Logística Terreno</span>
+            </div>
+            <p class="text-lg font-bold text-amber-200 group-hover:text-amber-100">Control de Flotas</p>
+            <p class="text-xs text-neutral-400 mt-1.5 leading-relaxed">Registro de kilometrajes, horas de salida/llegada de cuadrillas y bitácoras de vehículos.</p>
+          </button>
+        </div>
+
+        <!-- Paneles dinámicos según rol -->
+        <div class="grid lg:grid-cols-2 gap-6">
+          <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+            <h3 class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-300 mb-4">
+              <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span> Avisos del Taller y Bodega
+            </h3>
+            <div id="avisosList" class="divide-y divide-neutral-800"></div>
+          </div>
+          <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+            <h3 class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-300 mb-4">
+              <span class="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span> Estado del Software (Desarrollo)
+            </h3>
+            <div id="softwareList" class="space-y-4"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════ VISTA: OBRAS ════════════ -->
+      <section id="view-obras" class="view space-y-4">
+
+        <!-- Sub-navegación -->
+        <div class="border-b border-neutral-800 flex gap-1 overflow-x-auto -mt-1">
+          <button class="subtab active" data-subtab="resumen"    onclick="switchTab('obras','resumen')">Resumen</button>
+          <button class="subtab"        data-subtab="cartera"    onclick="switchTab('obras','cartera')">Cartera / Kanban</button>
+          <button class="subtab"        data-subtab="gantt"      onclick="switchTab('obras','gantt')">Carta Gantt</button>
+          <button class="subtab" data-roles="gerencia,contabilidad" data-subtab="financiero" onclick="switchTab('obras','financiero')">Financiero</button>
+          <button class="subtab"        data-subtab="garantias"  onclick="switchTab('obras','garantias')">Garantías</button>
+        </div>
+
+        <!-- ─── PANE: RESUMEN ─── -->
+        <div class="tabpane active space-y-5" data-pane="resumen">
+          <div data-roles="gerencia,contabilidad">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Resumen de Cartera</h2>
+              <button onclick="registrarEP()" class="text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg">+ Registrar Estado de Pago</button>
+            </div>
+            <div id="obrasKpis" class="grid grid-cols-2 lg:grid-cols-5 gap-4"></div>
+          </div>
+          <div data-roles="jefatura,coordinador" class="bg-neutral-900/60 border border-dashed border-neutral-700 rounded-xl px-5 py-3 text-xs text-neutral-500 flex items-center gap-2">
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> La información financiera es visible únicamente para Gerencia. Tu vista muestra estado y avance operativo.
+          </div>
+          <div id="obrasAlertas" class="grid md:grid-cols-3 gap-4 mt-4"></div>
+        </div>
+
+        <!-- ─── PANE: CARTERA / KANBAN ─── -->
+        <div class="tabpane" data-pane="cartera">
+          <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+              <input id="obrasFiltro" oninput="renderKanbanObras()" placeholder="Filtrar proyecto, cruce o coordinador…" class="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500 w-72">
+              <span id="obrasCount" class="text-[11px] text-neutral-500"></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span data-roles="gerencia,jefatura" class="text-[10px] font-bold bg-neutral-800 text-neutral-400 border border-neutral-700 px-2 py-1 rounded-full uppercase tracking-wider">Solo lectura</span>
+              <button data-roles="coordinador" onclick="openTransferModal()" class="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-200 px-3 py-2 rounded-lg">Transferir Proyecto <span class="text-[10px] text-amber-400">(verificación)</span></button>
+            </div>
+          </div>
+          <p class="text-xs text-neutral-500 mb-3">Clic en cualquier tarjeta para ver el detalle del proyecto, sus gestiones y la bitácora.</p>
+          <div id="kanbanObras" class="flex gap-4 overflow-x-auto pb-3"></div>
+        </div>
+
+        <!-- ─── PANE: CARTA GANTT ─── -->
+        <div class="tabpane" data-pane="gantt">
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+            <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Carta Gantt — Cartera 2025-2026</h2>
+              <div class="flex items-center gap-3 text-[10px] text-neutral-500">
+                <span class="flex items-center gap-1"><span class="w-3 h-2 rounded-sm bg-neutral-700"></span>Plan</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-2 rounded-sm bg-emerald-500"></span>Avance</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-2 rounded-sm bg-red-500"></span>Detenido</span>
+                <span data-roles="coordinador" class="text-amber-400">Clic en una barra para editar fechas</span>
+              </div>
+            </div>
+            <div id="obrasGantt" class="overflow-x-auto"></div>
+          </div>
+        </div>
+
+        <!-- ─── PANE: FINANCIERO (Gerencia) ─── -->
+        <div class="tabpane" data-pane="financiero">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Control Financiero — Facturación y Contratos</h2>
+            <span class="text-[10px] text-neutral-500">Automatiza la planilla "Grafico" · datos reales</span>
+          </div>
+          <div id="finKpis" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5"></div>
+          <div class="grid lg:grid-cols-2 gap-5">
+            <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">Curva de Facturación Acumulada (UF)</h3>
+              <div class="h-64"><canvas id="finCurva"></canvas></div>
+            </div>
+            <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">Contratos vs Facturación Mensual (UF)</h3>
+              <div class="h-64"><canvas id="finBarras"></canvas></div>
+            </div>
+          </div>
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl mt-5 overflow-hidden">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400 px-5 pt-4 pb-2">Detalle mensual — Real vs Meta</h3>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-[11px] uppercase tracking-wider text-neutral-500 border-b border-neutral-800">
+              <th class="py-2 px-5">Mes</th><th class="py-2 px-3">Contratos</th><th class="py-2 px-3">Fact. Real</th><th class="py-2 px-3">Proyectada</th><th class="py-2 px-3">Meta</th><th class="py-2 px-3">Dif. vs Meta</th></tr></thead>
+              <tbody id="finTabla" class="divide-y divide-neutral-800/70"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ─── PANE: GARANTÍAS ─── -->
+        <div class="tabpane" data-pane="garantias">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Boletas de Garantía</h2>
+            <button data-roles="gerencia,coordinador" onclick="nuevaGarantia()" class="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-2 rounded-lg">+ Registrar Boleta</button>
+          </div>
+          <p class="text-xs text-neutral-500 mb-4">Plantilla de seguimiento (el Excel actual no registra boletas). Alerta automática por vencimiento.</p>
+          <div id="garantiasList" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- ════════════ VISTA: BODEGA ════════════ -->
+      <section id="view-bodega" class="view hidden space-y-4">
+
+        <!-- KPI compacto de stock (siempre visible) -->
+        <div id="stockKpi" class="flex flex-wrap items-center gap-2"></div>
+
+        <!-- Sub-navegación -->
+        <div class="border-b border-neutral-800 flex gap-1 overflow-x-auto">
+          <button class="subtab active" data-subtab="inventario"  onclick="switchTab('bodega','inventario')">Inventario</button>
+          <button class="subtab"        data-subtab="solicitudes" onclick="switchTab('bodega','solicitudes')">Solicitudes <span id="solBadge"></span></button>
+          <button class="subtab" data-roles="gerencia,jefatura,bodega" data-subtab="cola" onclick="switchTab('bodega','cola')">Cola de Pedidos</button>
+        </div>
+
+        <!-- ─── PANE: INVENTARIO ─── -->
+        <div class="tabpane active" data-pane="inventario">
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+            <div class="flex items-center justify-between mb-1 gap-3 flex-wrap">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Inventario Central — Gestión Nativa</h2>
+              <button data-roles="bodega,gerencia" onclick="registrarIngreso()" class="text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg">+ Registrar Ingreso</button>
+            </div>
+            <p class="text-xs text-neutral-500 mb-5">El stock se descuenta <span class="text-amber-400 font-semibold">automáticamente al despachar</span> y se suma al registrar ingresos. Reemplaza el chequeo manual en Defontana con alertas en tiempo real.</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead><tr class="text-left text-[11px] uppercase tracking-wider text-neutral-500 border-b border-neutral-800">
+                  <th class="py-2.5 pr-4">Material</th><th class="py-2.5 pr-4">Stock</th><th class="py-2.5 pr-4">Mínimo</th><th class="py-2.5 pr-4">Estado</th><th class="py-2.5 pr-4 text-right">Costo unit.</th><th class="py-2.5 text-right">Valorización</th>
+                </tr></thead>
+                <tbody id="inventarioTable" class="divide-y divide-neutral-800/70"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6 mt-4">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400 mb-4">Últimos Movimientos</h2>
+            <div id="movimientosList" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <!-- ─── PANE: SOLICITUDES (+ Críticas) ─── -->
+        <div class="tabpane space-y-4" data-pane="solicitudes">
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Solicitudes de Materiales</h2>
+              <button data-roles="gerencia,coordinador,jefatura,tecnico,desarrollo,firmware" onclick="nuevoPedido()" class="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-2 rounded-lg">+ Solicitar Material</button>
+            </div>
+            <p class="text-xs text-neutral-500 mb-5">Si el monto supera <span class="text-amber-400 font-semibold">$<span id="umbralLabel"></span> neto</span> (o es hardware mayor), sube a <span class="text-red-400 font-semibold">Crítica</span> y requiere aprobación. El resto lo despacha directo <span class="text-amber-400 font-semibold">Bodega (Juan)</span>.</p>
+            <div id="solicitudesList" class="space-y-3"></div>
+          </div>
+          <div data-roles="gerencia,jefatura,coordinador,bodega,tecnico" class="bg-neutral-900 border border-red-500/30 rounded-xl p-6 mt-4">
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-red-300">Solicitudes Críticas</h2>
+              <span data-roles="bodega" class="text-[10px] font-bold bg-neutral-800 text-neutral-400 border border-neutral-700 px-2 py-1 rounded-full uppercase tracking-wider">Bloqueado — solo lectura</span>
+            </div>
+            <p class="text-xs text-neutral-500 mb-5">Aprueban/rechazan <span class="text-emerald-400 font-semibold">Gerencia</span> o <span class="text-emerald-400 font-semibold">Jefatura</span>. Bodega no despacha sin aprobación previa.</p>
+            <div id="criticasList" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <!-- ─── PANE: COLA DE PEDIDOS ─── -->
+        <div class="tabpane" data-pane="cola">
+          <div class="bg-neutral-900 border border-amber-500/30 rounded-xl p-6">
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-amber-300">Cola de Pedidos — Listos para Despacho</h2>
+              <span data-roles="gerencia,jefatura" class="text-[10px] font-bold bg-neutral-800 text-neutral-400 border border-neutral-700 px-2 py-1 rounded-full uppercase tracking-wider">Solo lectura</span>
+            </div>
+            <p class="text-xs text-neutral-500 mb-5"><span class="text-amber-400 font-semibold">Bodega (Juan)</span> genera la guía de salida y el stock se descuenta solo.</p>
+            <div id="colaList" class="space-y-3"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════ VISTA: FINANZAS Y CONTABILIDAD ════════════ -->
+      <section id="view-finanzas" class="view hidden space-y-4">
+
+        <div class="border-b border-neutral-800 flex gap-1 overflow-x-auto">
+          <button class="subtab active" data-subtab="resumen"   onclick="switchTab('finanzas','resumen')">Resumen</button>
+          <button class="subtab"        data-subtab="cobranza"  onclick="switchTab('finanzas','cobranza')">Facturación y Cobranza</button>
+          <button class="subtab"        data-subtab="gastos"    onclick="switchTab('finanzas','gastos')">Gastos operacionales</button>
+          <button class="subtab"        data-subtab="costos"    onclick="switchTab('finanzas','costos')">Costos y márgenes</button>
+          <button class="subtab"        data-subtab="cierre"    onclick="switchTab('finanzas','cierre')">Cierre mensual</button>
+          <button class="subtab"        data-subtab="garantias" onclick="switchTab('finanzas','garantias')">Garantías</button>
+        </div>
+
+        <!-- ─── RESUMEN ─── -->
+        <div class="tabpane active" data-pane="resumen">
+          <div id="finResKpis" class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5"></div>
+          <div class="grid lg:grid-cols-2 gap-5">
+            <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">Facturación Acumulada vs Meta (UF)</h3>
+              <div class="h-64"><canvas id="finResCurva"></canvas></div>
+            </div>
+            <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">Composición de Costos</h3>
+              <div class="h-64"><canvas id="finResCostos"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── FACTURACIÓN Y COBRANZA ─── -->
+        <div class="tabpane space-y-4" data-pane="cobranza">
+          <div id="finCobranzaKpis" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4"></div>
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden mb-4">
+            <div class="flex items-center justify-between px-5 pt-4 pb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400">Estados de Pago y Facturación</h3>
+              <button onclick="registrarEP()" class="text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg">+ Registrar EP</button>
+            </div>
+            <div class="overflow-x-auto max-h-[40vh]"><table class="w-full text-sm"><thead><tr class="text-left text-[11px] uppercase tracking-wider text-neutral-500 border-b border-neutral-800 sticky top-0 bg-neutral-900">
+              <th class="py-2 px-5">Proyecto</th><th class="py-2 px-3">Contrato</th><th class="py-2 px-3">Facturado</th><th class="py-2 px-3">% Fact.</th><th class="py-2 px-3">Por facturar</th></tr></thead>
+              <tbody id="finFacturacionTable" class="divide-y divide-neutral-800/70"></tbody></table></div>
+          </div>
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400 px-5 pt-4 pb-2">Cuentas por Cobrar — Aging por Mandante</h3>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-[11px] uppercase tracking-wider text-neutral-500 border-b border-neutral-800">
+              <th class="py-2 px-5">Mandante</th><th class="py-2 px-3">Facturado</th><th class="py-2 px-3">Cobrado</th><th class="py-2 px-3">Por cobrar</th><th class="py-2 px-3">Antigüedad</th><th class="py-2 px-3"></th></tr></thead>
+              <tbody id="finCobranzaTable" class="divide-y divide-neutral-800/70"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ─── GASTOS OPERACIONALES ─── -->
+        <div class="tabpane" data-pane="gastos">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Gastos Operacionales</h2>
+            <button data-roles="contabilidad,gerencia" onclick="registrarGasto()" class="text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg">+ Registrar Gasto</button>
+          </div>
+          <p class="text-xs text-neutral-500 mb-4">Caja chica, combustible, peajes, mantención de vehículos, pasajes y viáticos a regiones. Alimentan el costo total y el cierre mensual.</p>
+          <div id="finGastosCats" class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5"></div>
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+            <div class="overflow-x-auto max-h-[45vh]"><table class="w-full text-sm"><thead><tr class="text-left text-[11px] uppercase tracking-wider text-neutral-500 border-b border-neutral-800 sticky top-0 bg-neutral-900">
+              <th class="py-2 px-5">Fecha</th><th class="py-2 px-3">Categoría</th><th class="py-2 px-3">Detalle</th><th class="py-2 px-3">Proyecto/Área</th><th class="py-2 px-3 text-right">Monto</th></tr></thead>
+              <tbody id="finGastosTable" class="divide-y divide-neutral-800/70"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ─── COSTOS Y MÁRGENES ─── -->
+        <div class="tabpane" data-pane="costos">
+          <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Costos y Márgenes</h2>
+            <label class="text-xs text-neutral-400 flex items-center gap-2">Mano de obra estimada (% del contrato)
+              <input id="moPct" type="number" min="0" max="100" value="25" oninput="renderCostos()" class="w-16 bg-neutral-800 border border-neutral-700 rounded-lg px-2 py-1 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500">%
+            </label>
+          </div>
+          <div id="finCostosKpis" class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5"></div>
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+            <div class="overflow-x-auto max-h-[45vh]"><table class="w-full text-sm"><thead><tr class="text-left text-[11px] uppercase tracking-wider text-neutral-500 border-b border-neutral-800 sticky top-0 bg-neutral-900">
+              <th class="py-2 px-5">Proyecto</th><th class="py-2 px-3">Contrato</th><th class="py-2 px-3">Mat. (Bodega)</th><th class="py-2 px-3">M. Obra</th><th class="py-2 px-3">Margen</th><th class="py-2 px-3">%</th></tr></thead>
+              <tbody id="finCostosTable" class="divide-y divide-neutral-800/70"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ─── CIERRE MENSUAL ─── -->
+        <div class="tabpane" data-pane="cierre">
+          <div class="grid lg:grid-cols-2 gap-5">
+            <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Cierre del Período</h2>
+                <select id="cierreMes" onchange="renderCierre()" class="bg-neutral-800 border border-neutral-700 rounded-lg px-2 py-1.5 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500"></select>
+              </div>
+              <div id="finCierrePanel"></div>
+            </div>
+            <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400 mb-4">Períodos Cerrados</h2>
+              <div id="finCierreHist" class="space-y-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── GARANTÍAS ─── -->
+        <div class="tabpane" data-pane="garantias">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400">Boletas de Garantía</h2>
+            <button data-roles="contabilidad,gerencia" onclick="nuevaGarantia()" class="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-2 rounded-lg">+ Registrar Boleta</button>
+          </div>
+          <p class="text-xs text-neutral-500 mb-4">Gestión y alerta automática de vencimientos. Contabilidad es responsable de su seguimiento y devolución.</p>
+          <div id="finGarantiasList" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- ════════════ VISTA: CUBICACIÓN (SOLO GERENCIA) ════════════ -->
+      <section id="view-cubicacion" class="view hidden space-y-6">
+        <div class="max-w-2xl">
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400"><svg class="w-4 h-4 inline -mt-0.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Motor de Cubicación Instantánea</h2>
+              <span class="text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-1 rounded-full uppercase tracking-wider"><svg class="w-3 h-3 inline -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Solo Gerencia</span>
+            </div>
+            <p class="text-xs text-neutral-500 mb-5">Herramienta exclusiva de Javier para estimar materiales y presupuesto de referencia en licitaciones de cruces semafóricos.</p>
+            <div class="grid grid-cols-3 gap-4 mb-5">
+              <div>
+                <label class="text-xs text-neutral-400 block mb-1.5">Postes (un)</label>
+                <input id="cubPostes" type="number" min="0" value="8" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+              </div>
+              <div>
+                <label class="text-xs text-neutral-400 block mb-1.5">Zanja (m)</label>
+                <input id="cubZanjas" type="number" min="0" value="120" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+              </div>
+              <div>
+                <label class="text-xs text-neutral-400 block mb-1.5">Cruces (un)</label>
+                <input id="cubCruces" type="number" min="0" value="1" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+              </div>
+            </div>
+            <button onclick="calcularCubicacion()" class="w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold py-2.5 rounded-lg transition">Calcular Presupuesto</button>
+            <div id="cubResultado" class="hidden mt-5 bg-neutral-950 border border-emerald-500/30 rounded-xl p-5 space-y-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════ VISTA: TALLER ════════════ -->
+      <section id="view-taller" class="view hidden space-y-6">
+
+        <!-- Kanban de Manufactura -->
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400 mb-3"><svg class="w-4 h-4 inline -mt-0.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg>Kanban de Manufactura — Tableros Eléctricos</h2>
+          <div id="kanbanTaller" class="flex gap-4 overflow-x-auto pb-3"></div>
+        </div>
+
+        <!-- Calendario Maestro -->
+        <div data-roles="gerencia,jefatura,tecnico,desarrollo">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400"><svg class="w-4 h-4 inline -mt-0.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>Calendario Maestro de Mantención — Junio 2026</h2>
+            <span data-roles="jefatura" class="text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-full uppercase tracking-wider">Modo Planificador — clic en un día para asignar</span>
+            <span data-roles="tecnico,firmware" class="text-[10px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30 px-2 py-1 rounded-full uppercase tracking-wider">Haz clic en una tarea para marcarla realizada</span>
+          </div>
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+            <div class="grid grid-cols-7 text-center text-[11px] font-bold uppercase tracking-wider text-neutral-500 border-b border-neutral-800">
+              <div class="py-2">Lun</div><div class="py-2">Mar</div><div class="py-2">Mié</div><div class="py-2">Jue</div><div class="py-2">Vie</div><div class="py-2 text-neutral-600">Sáb</div><div class="py-2 text-neutral-600">Dom</div>
+            </div>
+            <div id="calendarGrid" class="grid grid-cols-7"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════ VISTA: FIRMWARE ════════════ -->
+      <section id="view-firmware" class="view hidden space-y-6">
+        <div class="grid lg:grid-cols-2 gap-6">
+          <div data-roles="firmware,gerencia" class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400 mb-1"><svg class="w-4 h-4 inline -mt-0.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>Subir Programación de Controlador</h2>
+            <p class="text-xs text-neutral-500 mb-5">El archivo queda disponible en "Pruebas Banco" del Kanban de Taller.</p>
+            <div class="space-y-4">
+              <div>
+                <label class="text-xs text-neutral-400 block mb-1.5">Cruce / Proyecto destino</label>
+                <select id="fwCruce" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                  <option>Rosario Norte / Apoquindo</option>
+                  <option>Av. Grecia / Marathon</option>
+                  <option>Vicuña Mackenna / Departamental</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-neutral-400 block mb-1.5">Versión</label>
+                <input id="fwVersion" type="text" value="v2.4.1" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+              </div>
+              <div class="border-2 border-dashed border-neutral-700 rounded-xl p-6 text-center text-neutral-500 text-sm hover:border-amber-500/50 cursor-pointer transition" onclick="subirFirmware()">
+                <svg class="w-8 h-8 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                Arrastra el archivo <span class="text-neutral-300 font-mono">.bin / .cfg</span> aquí<br>
+                <span class="text-xs">o haz clic para simular la carga</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400 mb-4"><svg class="w-4 h-4 inline -mt-0.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Historial y Feedback de Banco de Pruebas</h2>
+            <div id="fwList" class="space-y-3"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════ VISTA: IOT ════════════ -->
+      <section id="view-iot" class="view hidden space-y-6">
+        <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+          <div class="flex items-center justify-between mb-1">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400"><svg class="w-4 h-4 inline -mt-0.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>Mantenedor — Directorio de Telemetría IoT</h2>
+            <button data-roles="desarrollo" onclick="agregarGateway()" class="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-2 rounded-lg">+ Registrar Gateway</button>
+          </div>
+          <p class="text-xs text-neutral-500 mb-5">Cruce semafórico ↔ Controlador ↔ Gateway de telemetría. Administrado por Desarrollo Tecnológico.</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-[11px] uppercase tracking-wider text-neutral-500 border-b border-neutral-800">
+                  <th class="py-3 pr-4">ID Cruce</th>
+                  <th class="py-3 pr-4">Ubicación</th>
+                  <th class="py-3 pr-4">Controlador</th>
+                  <th class="py-3 pr-4">Gateway</th>
+                  <th class="py-3 pr-4">SIM / APN</th>
+                  <th class="py-3 pr-4">Estado</th>
+                  <th class="py-3">Última Señal</th>
+                </tr>
+              </thead>
+              <tbody id="iotTable" class="divide-y divide-neutral-800/70"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════ VISTA: AGENDA ════════════ -->
+      <section id="view-agenda" class="view hidden space-y-6">
+        <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400 mb-1"><svg class="w-4 h-4 inline -mt-0.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>Agenda Diaria — Jueves 12 Junio 2026</h2>
+          <p class="text-xs text-neutral-500 mb-5">Asignaciones del día planificadas por Jefatura de Mantención.</p>
+          <div class="space-y-3" id="agendaList"></div>
+        </div>
+      </section>
+
+      <!-- Vista de acceso denegado -->
+      <section id="view-denied" class="view hidden">
+        <div class="flex flex-col items-center justify-center py-24 text-center">
+          <svg class="w-12 h-12 mb-4 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <p class="text-lg font-bold text-neutral-200">Acceso restringido</p>
+          <p class="text-sm text-neutral-500 mt-1">Tu rol actual no tiene permisos para este módulo.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============ MODAL: TRANSFERENCIA SEGURA ============ -->
+<div id="transferModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/80 backdrop-blur-sm p-4">
+  <div class="bg-neutral-900 border border-red-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center text-red-400"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+      <div>
+        <h3 class="font-bold text-neutral-100">Transferencia Crítica de Obra</h3>
+        <p class="text-xs text-neutral-500">Esta acción reasigna responsables y presupuesto.</p>
+      </div>
+    </div>
+    <p class="text-sm text-neutral-300 mb-4">
+      Para confirmar, escribe exactamente el nombre del proyecto:<br>
+      <span class="font-mono text-amber-400 font-semibold select-all">Modificación Ciclovía Presidente Riesco</span>
+    </p>
+    <input id="transferInput" type="text" placeholder="Escribe el nombre exacto..." autocomplete="off"
+      class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-red-500 mb-1"
+      oninput="validateTransfer()">
+    <p id="transferHint" class="text-[11px] text-neutral-500 h-4 mb-4"></p>
+    <div class="flex gap-3">
+      <button onclick="closeTransferModal()" class="flex-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 font-semibold py-2.5 rounded-lg">Cancelar</button>
+      <button id="transferConfirmBtn" disabled onclick="confirmTransfer()"
+        class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-lg opacity-40 cursor-not-allowed transition">Transferir Obra</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: DETALLE DE PROYECTO ============ -->
+<div id="proyectoModal" class="hidden fixed inset-0 z-50 flex items-start justify-center bg-neutral-950/80 backdrop-blur-sm p-4 overflow-y-auto">
+  <div class="bg-neutral-900 border border-neutral-700 rounded-2xl w-full max-w-2xl my-8 shadow-2xl">
+    <div id="proyectoModalBody"></div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 w-80"></div>
+
+<script>
+/* ═══════════════════════ ESTADO GLOBAL (MOCK) ═══════════════════════ */
+
+const ROLES = {
+  gerencia:    { name: 'Javier Smith',   label: 'Gerencia / Subgerencia',    initials: 'JS', color: 'bg-emerald-600', home: 'inicio' },
+  jefatura:    { name: 'Víctor Aburto',  label: 'Jefatura de Mantención',    initials: 'VA', color: 'bg-amber-600',   home: 'inicio' },
+  coordinador: { name: 'Carlos Salas',   label: 'Coordinación de Obras',     initials: 'CS', color: 'bg-sky-600',     home: 'inicio' },
+  bodega:      { name: 'Juan Herrera',   label: 'Encargado de Bodega',       initials: 'JH', color: 'bg-orange-600',  home: 'inicio' },
+  contabilidad:{ name: 'Claudio Yáñez',  label: 'Analista Contable',         initials: 'CY', color: 'bg-teal-600',    home: 'finanzas' },
+  desarrollo:  { name: 'Elías Guajardo', label: 'Desarrollo Tecnológico',    initials: 'EG', color: 'bg-violet-600',  home: 'inicio' },
+  firmware:    { name: 'Febe Benecke',   label: 'Programación de Firmware',  initials: 'FB', color: 'bg-pink-600',    home: 'inicio' },
+  tecnico:     { name: 'Pablo Carreño',  label: 'Técnico Taller / Terreno',  initials: 'PC', color: 'bg-neutral-600',   home: 'inicio' },
+};
+
+/* ── Matriz de permisos (Q&A + matriz de roles) ──
+   Valores: read | write | create | approve | dispatch | readblock | none      */
+const PERM = {
+  obrasKanban:   { gerencia:'read',    jefatura:'read',   coordinador:'write', contabilidad:'read' },
+  obrasFinanzas: { gerencia:'write',   contabilidad:'write' },
+  bodegaSolic:   { gerencia:'create',  jefatura:'create', coordinador:'create', bodega:'dispatch', tecnico:'create', firmware:'create', desarrollo:'create' },
+  bodegaCritic:  { gerencia:'approve', jefatura:'approve',coordinador:'create', bodega:'readblock', tecnico:'create' },
+  bodegaCola:    { gerencia:'read',    jefatura:'read',   bodega:'write' },
+  finanzas:      { gerencia:'read',    contabilidad:'write' },
+};
+// Permiso del rol actual sobre un módulo ('none' si no aparece)
+function perm(mod) { return (PERM[mod] || {})[currentRole] || 'none'; }
+// Umbral sobre el cual una Solicitud se vuelve Crítica (CLP, neto)
+const UMBRAL_CRITICO = 500000;
+
+/* ── DATOS REALES (extraídos del Excel de Javier) ── */
+const OBRAS_REAL = [{"con": "26-148-01", "nombre": "Semáforos CAM Talca", "cruce": "3 Poniente con 2 Norte", "comuna": "Talca", "tipo": "Modificación de semáforo", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Carlos Salas", "fase": "Ejecución", "detenido": true, "avance": 55, "contratoUF": 9346.2, "facturadoUF": 0.0, "saldoUF": 9346.2, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 1], "plazo": [2027, 6], "comentarios": [{"f": "25-05", "t": "Se asigna proyecto a Carlos Salas"}, {"f": "14-05", "t": "Se informa verbalmente la aprobación de planos, sin noticias formales"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "26-158-06", "nombre": "Ajuste de semáforos en Providencia: SAESA", "cruce": "Varios cruces", "comuna": "Providencia", "tipo": "Sintonía fina", "mandante": "SAESA", "coord": "Viviana Aranda", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 6810.0, "facturadoUF": 0.0, "saldoUF": 6810.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 6], "plazo": [2026, 12], "comentarios": []}, {"con": "25-122-03", "nombre": "MM Jumbo Linares", "cruce": "Circunvalación – Av. Aníbal León Bustos", "comuna": "Linares", "tipo": "Semaforización nueva", "mandante": "Inarco", "coord": "Carlos Salas", "fase": "Ejecución", "detenido": false, "avance": 55, "contratoUF": 13500.0, "facturadoUF": 8079.5, "saldoUF": 5420.5, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 5], "plazo": [2026, 8], "comentarios": [{"f": "26-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}, {"f": "22-04", "t": "Se mantiene estatus"}]}, {"con": "26-154-04", "nombre": "Edificio Parque Granadilla - Viña del Mar", "cruce": "11 Norte con San Antonio", "comuna": "Viña del Mar", "tipo": "Semaforización nueva", "mandante": "EBCO", "coord": "Javiera Orozco", "fase": "Gestión de permisos", "detenido": false, "avance": 30, "contratoUF": 3593.7, "facturadoUF": 0.0, "saldoUF": 3593.7, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 4], "plazo": [2027, 4], "comentarios": [{"f": "25-05", "t": "entrega de terreno ok, continuar gestión SERVIU"}, {"f": "14-05", "t": "Entrega de terreno programada para el 19 de mayo"}, {"f": "27-04", "t": "Pendiente kick off y anticipo para iniciar gestiones"}]}, {"con": "26-153-03", "nombre": "Edificio Independencia 768", "cruce": "Independencia con Colón", "comuna": "Independencia", "tipo": "Sintonía fina", "mandante": "Desarrollo Inmobiliario Independencia SPA", "coord": "Javiera Orozco", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 3034.9, "facturadoUF": 607.7, "saldoUF": 2427.2, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 3], "plazo": [2027, 6], "comentarios": [{"f": "14-05", "t": "Sintonía fina en proceso de aprobación por MHO"}, {"f": "13-04", "t": "Pendiente kick off y anticipo para iniciar gestiones"}]}, {"con": "25-138-10", "nombre": "MM Centro Comercial Padre Hurtado", "cruce": "San Ignacio con Santa Herminia", "comuna": "Padre Hurtado", "tipo": "Semaforización nueva", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Carlos Salas", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 2843.3, "facturadoUF": 568.7, "saldoUF": 2274.7, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 10], "plazo": [2026, 12], "comentarios": [{"f": "25-05", "t": "Entrega de terreno rechazada por no contar con planos timbrados, se solicitan al mandante"}, {"f": "13-05", "t": "Ya se cuenta con plano aprobado, esperando agendamiento de UOCT para marcar postes"}, {"f": "27-04", "t": "Se mantiene estatus, además se declara que Tacora no ha enviado la programacion de las obras, por lo que no se ha tenido continuidad de trabajos"}]}, {"con": "26-145-01", "nombre": "Cambio de controladores Terralta Los Dominicos", "cruce": "Camino El Alba con Francisco Bulnes Correa", "comuna": "Las Condes", "tipo": "Modificación de semáforo", "mandante": "Besalco Inmobiliaria S.A.", "coord": "Javiera Orozco", "fase": "Gestión de permisos", "detenido": false, "avance": 30, "contratoUF": 3038.8, "facturadoUF": 1215.5, "saldoUF": 1823.3, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 1], "plazo": [2026, 12], "comentarios": [{"f": "26-05", "t": "Esperando traspaso en mantención"}, {"f": "14-05", "t": "Revisión en terreno por traspaso en mantención realizado, pendiente firma acta. Controlador armado"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "23-060", "nombre": "Edificio Obispo Orrego 62", "cruce": "Holanda - Simón Bolivar", "comuna": "Ñuñoa", "tipo": "Modificación de semáforo", "mandante": "Euro Inmobiliaria", "coord": "Carlos Salas", "fase": "En proceso de recepción", "detenido": false, "avance": 85, "contratoUF": 4200.6, "facturadoUF": 2487.3, "saldoUF": 1713.4, "g": {"permisos": "", "uoct": "3.- Con IT de entrega de terreno", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2023, 1], "plazo": [2025, 2], "comentarios": [{"f": "13-04", "t": "Terminado y devuelto al municipio. Se mantiene estatus para control de avance de cobro"}, {"f": "09-02", "t": "Levantamiento solicitado, respuesta 7 de marzo"}, {"f": "16-04", "t": "Pendiente tiempos de puesta en marcha usando demanda permanente"}]}, {"con": "25-120-02", "nombre": "Ciudad Bicentenario - Cerrillos", "cruce": "Pedro Aguirre Cerda - Felix Margoz", "comuna": "Cerrillos", "tipo": "Modificación de semáforo", "mandante": "Inmobiliaria 70W", "coord": "Juan Acuña", "fase": "Ejecución", "detenido": false, "avance": 55, "contratoUF": 2481.0, "facturadoUF": 946.7, "saldoUF": 1534.3, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 2], "plazo": [2026, 12], "comentarios": [{"f": "26-05", "t": "Cruce terminado, pero se mantiene estatus por globalidad del proyecto"}]}, {"con": "26-144-01", "nombre": "Modificación Ciclovia Meneses", "cruce": "Francisco Meneses con Guillermo Mann", "comuna": "Ñuñoa", "tipo": "Modificación de semáforo", "mandante": "Inmobiliaria Sinergia", "coord": "Juan Acuña", "fase": "Gestión de permisos", "detenido": false, "avance": 30, "contratoUF": 2187.6, "facturadoUF": 656.3, "saldoUF": 1531.3, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 1], "plazo": [2026, 12], "comentarios": [{"f": "26-05", "t": "Se mantiene estatus"}, {"f": "14-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "25-129-07", "nombre": "Medida de mitigación Vistas de Colina", "cruce": "Aconcagua con Zenteno del Pozo", "comuna": "Colina", "tipo": "Semaforización nueva", "mandante": "Besalco Inmobiliaria S.A.", "coord": "Juan Acuña", "fase": "Ejecución", "detenido": true, "avance": 55, "contratoUF": 1885.7, "facturadoUF": 356.6, "saldoUF": 1529.1, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 7], "plazo": [2026, 12], "comentarios": [{"f": "13-04", "t": "Proyecto detenido"}, {"f": "09-02", "t": "Se envió correo a Ing UOCT para definir plan de accion del sector poniente"}, {"f": "08-01", "t": "Con entrega de terreno, solicitado enlace y empalme. Falta definir curso de acción en sector poniente, definir en reunión con mandante 24 de enero"}]}, {"con": "25-123-04", "nombre": "Medidas de mitigación Edificio Don Vicente III  Etapa II", "cruce": "Colombia con Geronimo de Alderete", "comuna": "La Florida", "tipo": "Instalación de CCTV", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Juan Acuña", "fase": "Gestión de permisos", "detenido": false, "avance": 30, "contratoUF": 2092.0, "facturadoUF": 570.8, "saldoUF": 1521.2, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 5], "plazo": [2026, 8], "comentarios": [{"f": "26-05", "t": "Se mantiene estatus"}, {"f": "14-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "25-140-11", "nombre": "MM Ampliación CD Lo Aguirre", "cruce": "Av Las Flores con Av del Canal", "comuna": "Pudahuel", "tipo": "Semaforización nueva", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Juan Acuña", "fase": "Ejecución", "detenido": false, "avance": 55, "contratoUF": 1939.5, "facturadoUF": 484.3, "saldoUF": 1455.2, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 11], "plazo": [2026, 12], "comentarios": [{"f": "25-05", "t": "Se sigue en ejecución. Aun no contamos con visto bueno por adicional de enlace (17-04)"}, {"f": "13-05", "t": "En ejecución de obras"}, {"f": "27-04", "t": "Se confirma inicio de obras para esta semana"}]}, {"con": "26-150-02", "nombre": "Jardines de Aconcagua - construcción", "cruce": "Aconcagua con Lo Seco", "comuna": "Colina", "tipo": "Semaforización nueva", "mandante": "Besalco Inmobiliaria S.A.", "coord": "Juan Acuña", "fase": "Gestión de permisos", "detenido": false, "avance": 30, "contratoUF": 1795.3, "facturadoUF": 718.1, "saldoUF": 1077.2, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 3], "plazo": [2027, 6], "comentarios": [{"f": "26-05", "t": "Se mantiene estatus"}, {"f": "14-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "25-135-10", "nombre": "Edificio Morandé Norte", "cruce": "Bandera con San Pablo", "comuna": "Santiago Centro", "tipo": "Modificación de semáforo", "mandante": "AJ Urbana", "coord": "Javiera Orozco", "fase": "Ejecución", "detenido": true, "avance": 55, "contratoUF": 1460.0, "facturadoUF": 429.4, "saldoUF": 1030.6, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 10], "plazo": [2026, 6], "comentarios": [{"f": "09-02", "t": "Detenido por obras del corredor Bandera"}, {"f": "09-01", "t": "En gestión de permisos. Pendiente provisión controlador"}]}, {"con": "25-143-12", "nombre": "Edificio Morandé Norte - CCTV", "cruce": "Amunategui con San Pablo", "comuna": "Santiago Centro", "tipo": "Instalación de CCTV", "mandante": "AJ Urbana", "coord": "Javiera Orozco", "fase": "Gestión de permisos", "detenido": false, "avance": 30, "contratoUF": 1220.0, "facturadoUF": 366.0, "saldoUF": 854.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 1], "plazo": [2026, 12], "comentarios": [{"f": "26-05", "t": "SEREMITT aprobado, pendiente traspaso y bnup"}, {"f": "14-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "26-156-06", "nombre": "Edificio Monjitas 690", "cruce": "Mac Iver con Monjitas", "comuna": "Santiago Centro", "tipo": "Instalación de CCTV", "mandante": "AJ Urbana", "coord": "Juan Acuña", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 654.9, "facturadoUF": 0.0, "saldoUF": 654.9, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 6], "plazo": [2027, 6], "comentarios": []}, {"con": "25-114-02", "nombre": "Alumbrado Público Francisco Riveros", "cruce": "Francisco Riveros entre Jose Ramon Castro y Ascencio de Zava", "comuna": "Ñuñoa", "tipo": "Alumbrado público", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Javier Smith", "fase": "Ejecución", "detenido": true, "avance": 55, "contratoUF": 524.5, "facturadoUF": 0.0, "saldoUF": 524.5, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 2], "plazo": [null, null], "comentarios": []}, {"con": "21-002", "nombre": "Oasis de Riesco", "cruce": "Cerro Tupungato - Cerro Colorado", "comuna": "Las Condes", "tipo": "Semaforización nueva", "mandante": "Constructora e Inmobiliaria Presidente Riesco SA", "coord": "Javiera Orozco", "fase": "Ejecución", "detenido": false, "avance": 55, "contratoUF": 7983.3, "facturadoUF": 7481.8, "saldoUF": 501.5, "g": {"permisos": "3.- Gestión SERVIU", "uoct": "1.- Validación de planos", "enlace": "CJ", "empalme": "CJ", "recepcion": "CJ"}, "asig": [2021, 1], "plazo": [2025, 5], "comentarios": [{"f": "14-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}, {"f": "21-04", "t": "Se mantiene estatus"}]}, {"con": "24-097-01", "nombre": "Modificacion Gran Avenida - Lo Ovalle", "cruce": "Gran Avenida - Lo Ovalle", "comuna": "La Cisterna", "tipo": "Modificación de semáforo", "mandante": "Besalco Inmobiliaria S.A.", "coord": "Carlos Salas", "fase": "Ejecución", "detenido": false, "avance": 55, "contratoUF": 1234.7, "facturadoUF": 803.7, "saldoUF": 431.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2024, 1], "plazo": [2025, 3], "comentarios": [{"f": "", "t": "Ver en Jorge Caceres"}]}, {"con": "26-152-03", "nombre": "MM Servicio de Salud Metropolitano Sur Oriente", "cruce": "Sintonia fina 2 intersecciones", "comuna": "Puente Alto", "tipo": "Ingeniería", "mandante": "Besalco Inmobiliaria S.A.", "coord": "Sin Asignar", "fase": "Ejecución", "detenido": true, "avance": 55, "contratoUF": 400.0, "facturadoUF": 0.0, "saldoUF": 400.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 3], "plazo": [2026, 12], "comentarios": [{"f": "14-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}, {"f": "21-04", "t": "Se mantiene estatus"}]}, {"con": "22-057", "nombre": "Calibración Scoot Terralta Los Dominicos", "cruce": "Camino El Alba – San Carlos de Apoquindo", "comuna": "Las Condes", "tipo": "Espiras Scoot", "mandante": "Besalco Inmobiliaria S.A.", "coord": "Javiera Orozco", "fase": "Ejecución", "detenido": true, "avance": 55, "contratoUF": 649.1, "facturadoUF": 257.1, "saldoUF": 392.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2022, 12], "plazo": [null, null], "comentarios": [{"f": "15-11", "t": "Espiras revisadas ok, se puede comenzar a calibrar una vez opere en scoot C. El Alba - La Plaza"}, {"f": "30-06", "t": "Programando calibración"}, {"f": "30-03", "t": "Espira en buen estado"}]}, {"con": "25-117-02", "nombre": "Centro de bodegas Vespucio", "cruce": "Av. Americo Vespucio / Lo Boza", "comuna": "Pudahuel", "tipo": "Instalación de CCTV", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Javiera Orozco", "fase": "Gestión de permisos", "detenido": false, "avance": 30, "contratoUF": 469.9, "facturadoUF": 94.0, "saldoUF": 375.9, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 2], "plazo": [2026, 6], "comentarios": [{"f": "26-05", "t": "Se mantiene estatus"}, {"f": "14-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "24-105-06", "nombre": "Modificación de semáforo San Martín - San Alberto", "cruce": "General San Martín – San Alberto", "comuna": "Colina", "tipo": "Modificación de semáforo", "mandante": "Inmobiliaria Manquehue", "coord": "Javiera Orozco", "fase": "Ejecución", "detenido": true, "avance": 55, "contratoUF": 516.2, "facturadoUF": 150.0, "saldoUF": 366.2, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2024, 6], "plazo": [null, null], "comentarios": []}, {"con": "24-098-01", "nombre": "Condominio Pie Andino", "cruce": "Luis Matte Larraín con Las Nieves Oriente", "comuna": "Puente Alto", "tipo": "Semaforización nueva", "mandante": "Constructora Vital", "coord": "Javiera Orozco", "fase": "En proceso de recepción", "detenido": false, "avance": 85, "contratoUF": 2970.9, "facturadoUF": 2702.6, "saldoUF": 268.4, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2024, 1], "plazo": [2025, 8], "comentarios": [{"f": "26-05", "t": "Esperando IT de recepción"}]}, {"con": "26-147-01", "nombre": "Sintonía fina Edificio Gerónimo", "cruce": "Don Pepe con Las Acacias", "comuna": "La Florida", "tipo": "Sintonía fina", "mandante": "Constructora Avsolomovich", "coord": "Javiera Orozco", "fase": "Ejecución", "detenido": true, "avance": 55, "contratoUF": 275.0, "facturadoUF": 11.9, "saldoUF": 263.1, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 1], "plazo": [2026, 12], "comentarios": [{"f": "14-05", "t": "Detenido"}, {"f": "27-04", "t": "Se mantiene estatus"}, {"f": "21-04", "t": "Se mantiene estatus"}]}, {"con": "25-131-08", "nombre": "Edificio Italia", "cruce": "Santa Isabel con Italia", "comuna": "Providencia", "tipo": "Modificación de semáforo", "mandante": "Inmobiliaria Puerto Arquitectura", "coord": "Juan Acuña", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 372.0, "facturadoUF": 111.6, "saldoUF": 260.4, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 7], "plazo": [2026, 12], "comentarios": [{"f": "25-05", "t": "Se mantiene estatus"}, {"f": "13-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "consultar al mandante por plano topográfico"}]}, {"con": "24-098-01", "nombre": "Condominio Pie Andino", "cruce": "Av. Troncal San Francisco con Las Nieves Oriente", "comuna": "Puente Alto", "tipo": "Semaforización nueva", "mandante": "Constructora Vital", "coord": "Javiera Orozco", "fase": "En proceso de recepción", "detenido": false, "avance": 85, "contratoUF": 2428.0, "facturadoUF": 2186.8, "saldoUF": 241.2, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2024, 1], "plazo": [2025, 8], "comentarios": [{"f": "26-05", "t": "Solo pendiente estudio de periodización y su respectiva reconfiguración y SF"}]}, {"con": "25-112-01", "nombre": "Edificio 273 Santiago", "cruce": "Libertad con Alameda / Abate Molina con Alameda", "comuna": "Santiago Centro", "tipo": "Modificación de semáforo", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Javiera Orozco", "fase": "En proceso de recepción", "detenido": false, "avance": 85, "contratoUF": 1827.8, "facturadoUF": 1600.8, "saldoUF": 227.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 1], "plazo": [2025, 10], "comentarios": [{"f": "26-05", "t": "Recepcion solicitada desde el 12-05, esperando agendamiento"}, {"f": "28-04", "t": "Solicitud de recepción solicitada"}]}, {"con": "25-136-10", "nombre": "Reconfiguraciones U de Los Andes", "cruce": "Camino Las Flores con San Carlos de Apoquindo", "comuna": "Las Condes", "tipo": "Reconfiguración", "mandante": "Universidad de Los Andes", "coord": "Javiera Orozco", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 320.0, "facturadoUF": 96.0, "saldoUF": 224.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 10], "plazo": [2026, 6], "comentarios": [{"f": "25-05", "t": "Se mantiene estatus"}, {"f": "13-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "24-101-04", "nombre": "Las Uvas y El Viento", "cruce": "Sofía Eastman de Hunneus - Las Uvas y El Viento", "comuna": "La Granja", "tipo": "Semaforización nueva", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Carlos Salas", "fase": "Ejecución", "detenido": false, "avance": 55, "contratoUF": 3466.9, "facturadoUF": 3248.6, "saldoUF": 218.3, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2024, 4], "plazo": [2025, 8], "comentarios": [{"f": "26-05", "t": "Integracion pendiente por parte de uoct, sin respuesta, coordinar encendido"}, {"f": "27-04", "t": "Enlace ok, falta demarcación para encender"}, {"f": "21-04", "t": "Se mantiene estatus"}]}, {"con": "23-068-02", "nombre": "Edificio Jorge Cáceres 220", "cruce": "Gran Avenida - Lo Ovalle", "comuna": "La Cisterna", "tipo": "Modificación de semáforo", "mandante": "Besalco Inmobiliaria S.A.", "coord": "Carlos Salas", "fase": "Gestión de permisos", "detenido": false, "avance": 30, "contratoUF": 182.7, "facturadoUF": 0.0, "saldoUF": 182.7, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2023, 2], "plazo": [2025, 3], "comentarios": [{"f": "26-05", "t": "Se mantiene estatus"}, {"f": "14-05", "t": "Permiso SERVIU aprobado, gestionando BNUP"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "23-086-08", "nombre": "Modificación Ciclovía Presidente Riesco", "cruce": "Av. Manquehue Norte - Presidente Riesco", "comuna": "Las Condes", "tipo": "Modificación de semáforo", "mandante": "Constructora e Inmobiliaria Presidente Riesco SA", "coord": "Javiera Orozco", "fase": "Terminado", "detenido": false, "avance": 100, "contratoUF": 352.8, "facturadoUF": 176.4, "saldoUF": 176.4, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2023, 7], "plazo": [2025, 7], "comentarios": [{"f": "27-04", "t": "Cobrar saldo final"}]}, {"con": "23-085-08", "nombre": "Proyectos de semáforos y otros Ciudad Bicentenario", "cruce": "Av. Pedro Aguirre Cerda con Av. Lo Errazuriz", "comuna": "Cerrillos", "tipo": "Ingeniería", "mandante": "Inmobiliaria 70W", "coord": "Javier Smith", "fase": "En proceso de recepción", "detenido": false, "avance": 85, "contratoUF": 720.0, "facturadoUF": 555.0, "saldoUF": 165.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2023, 8], "plazo": [2025, 5], "comentarios": [{"f": "28-04", "t": "Se mantiene estatus"}, {"f": "13-04", "t": "Contrato de ingenierias y SF. Aun pendiente por ejecutar, revisar con Viviana"}]}, {"con": "25-116-02", "nombre": "Medidas de Mitigación Edificio Apoquindo 6880", "cruce": "Apoquindo / General Carlos Urzúa", "comuna": "Las Condes", "tipo": "Modificación de semáforo", "mandante": "Inmobiliaria Apoquindo 6880 SPA", "coord": "Juan Acuña", "fase": "En proceso de recepción", "detenido": false, "avance": 85, "contratoUF": 581.9, "facturadoUF": 441.5, "saldoUF": 140.4, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 2], "plazo": [2026, 6], "comentarios": [{"f": "26-05", "t": "Cruce encendido desde el 20-05. Cruce con problema de integracion en plan 6, pendiente SF"}, {"f": "27-04", "t": "Se mantiene estatus"}, {"f": "22-04", "t": "Esperando nuevo agendamiento para prueba de aislación, configuración solicitada a auter el 06 de abril"}]}, {"con": "22-038", "nombre": "Modificación Guay Guay - Sergio Correa", "cruce": "Sergio Correa - Guay Guay", "comuna": "Colina", "tipo": "Modificación de semáforo", "mandante": "Constructora Enaco", "coord": "Daniel Bracamonte", "fase": "Ejecución", "detenido": true, "avance": 55, "contratoUF": 154.3, "facturadoUF": 32.2, "saldoUF": 122.1, "g": {"permisos": "10.- Mandante", "uoct": "14.- N/A", "enlace": "", "empalme": "", "recepcion": "Pendiente"}, "asig": [2022, 6], "plazo": [null, null], "comentarios": [{"f": "07-11", "t": "Mismo estado, sin noticias de mandante se debe consultar"}, {"f": "30-06", "t": "En esperra de reactivación proyecto"}, {"f": "30-03", "t": "Revisar tiempos de puesta en marcha aprobados en proyecto de I Manquehue, se debe revalidar para proyecto actual (Enaco)"}]}, {"con": "26-146-01", "nombre": "Sintonia fina Lote Z Padre Hurtado", "cruce": "Cam San Alberto Hurtado - Av Santa Leonor - Luis Pasteur", "comuna": "Padre Hurtado", "tipo": "Sintonía fina", "mandante": "Inmobiliaria 70W", "coord": "Carlos Salas", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 120.0, "facturadoUF": 0.0, "saldoUF": 120.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 1], "plazo": [2026, 12], "comentarios": [{"f": "25-05", "t": "En proceso"}, {"f": "14-05", "t": "Detenido"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "25-137-10", "nombre": "MM Valle Los Nogales 7", "cruce": "Santa Elena con San Miguel", "comuna": "Colina", "tipo": "Sintonía fina", "mandante": "Inmobiliaria 70W", "coord": "Carlos Salas", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 170.0, "facturadoUF": 51.0, "saldoUF": 119.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 10], "plazo": [2026, 12], "comentarios": [{"f": "25-05", "t": "Se mantiene estatus"}, {"f": "13-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "24-098-01", "nombre": "Condominio Pie Andino", "cruce": "Av. Troncal San Francisco entre Av. San Carlos y Av. México ", "comuna": "Puente Alto", "tipo": "Demarcaciones", "mandante": "Constructora Vital", "coord": "Javiera Orozco", "fase": "Terminado", "detenido": false, "avance": 100, "contratoUF": 2374.7, "facturadoUF": 2256.0, "saldoUF": 118.7, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2024, 1], "plazo": [2025, 8], "comentarios": [{"f": "26-05", "t": "Terminado, falta cobrar saldos pendientes"}]}, {"con": "25-117-02", "nombre": "Centro de bodegas Vespucio", "cruce": "Av. Americo Vespucio / Lo Boza", "comuna": "Pudahuel", "tipo": "Sintonía fina", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Javiera Orozco", "fase": "Terminado", "detenido": false, "avance": 100, "contratoUF": 143.2, "facturadoUF": 28.6, "saldoUF": 114.6, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 2], "plazo": [2026, 6], "comentarios": [{"f": "22-04", "t": "Con IT de recepción"}, {"f": "13-04", "t": "Recepción agendada para el 15 de abril"}, {"f": "09-02", "t": "Esperando data y eprom"}]}, {"con": "23-086-08", "nombre": "Modificación Ciclovía Presidente Riesco", "cruce": "Presidente Riesco - Nuestra Señora del Rosario", "comuna": "Las Condes", "tipo": "Modificación de semáforo", "mandante": "Constructora e Inmobiliaria Presidente Riesco SA", "coord": "Javiera Orozco", "fase": "Terminado", "detenido": false, "avance": 100, "contratoUF": 561.4, "facturadoUF": 448.6, "saldoUF": 112.7, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2023, 7], "plazo": [2025, 7], "comentarios": [{"f": "27-04", "t": "Cobrar saldo final"}]}, {"con": "26-157-06", "nombre": "Edificio Teatinos 750 etapa 2", "cruce": "Teatinos con Rosas", "comuna": "Santiago Centro", "tipo": "Reconfiguración", "mandante": "AJ Urbana", "coord": "Javiera Orozco", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 110.0, "facturadoUF": 0.0, "saldoUF": 110.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 6], "plazo": [2027, 6], "comentarios": []}, {"con": "23-068-02", "nombre": "Edificio Jorge Cáceres 220", "cruce": "Gran Avenida - Centenario", "comuna": "San Miguel", "tipo": "Sintonía fina", "mandante": "Besalco Inmobiliaria S.A.", "coord": "Carlos Salas", "fase": "Ejecución", "detenido": false, "avance": 55, "contratoUF": 217.3, "facturadoUF": 108.7, "saldoUF": 108.7, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2023, 9], "plazo": [2025, 5], "comentarios": [{"f": "26-05", "t": "Se mantiene estatus"}, {"f": "14-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}]}, {"con": "26-159-06", "nombre": "MM Condominio Nueva Vespucio", "cruce": "Av. Santa Rosa - Av. Américo Vespucio (nodo 1)", "comuna": "San Ramon / La Granja", "tipo": "Reconfiguración", "mandante": "Imbau", "coord": "Javiera Orozco", "fase": "Inicio y planificación", "detenido": false, "avance": 10, "contratoUF": 105.0, "facturadoUF": 0.0, "saldoUF": 105.0, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2026, 6], "plazo": [2026, 12], "comentarios": []}, {"con": "25-117-02", "nombre": "Centro de bodegas Vespucio", "cruce": "Av. Americo Vespucio / Lo Boza", "comuna": "Pudahuel", "tipo": "Modificación de semáforo", "mandante": "Ingeniería y Construcción Tacora SPA", "coord": "Javiera Orozco", "fase": "Gestión de permisos", "detenido": false, "avance": 30, "contratoUF": 116.9, "facturadoUF": 23.4, "saldoUF": 93.5, "g": {"permisos": "", "uoct": "", "enlace": "", "empalme": "", "recepcion": ""}, "asig": [2025, 2], "plazo": [2026, 6], "comentarios": [{"f": "26-05", "t": "Se mantiene estatus"}, {"f": "14-05", "t": "Se mantiene estatus"}, {"f": "27-04", "t": "Se mantiene estatus"}]}];
+const FIN_MENSUAL = [{"y": 2024, "m": 1, "contratos": 11895.6, "fact": 3360.0, "proy": 4803.6, "meta": 3000.0}, {"y": 2024, "m": 2, "contratos": 42.2, "fact": 3586.9, "proy": 4650.7, "meta": 3000.0}, {"y": 2024, "m": 3, "contratos": 297.9, "fact": 2349.4, "proy": 3797.5, "meta": 3000.0}, {"y": 2024, "m": 4, "contratos": 4231.3, "fact": 2149.0, "proy": 3751.3, "meta": 3000.0}, {"y": 2024, "m": 5, "contratos": 0.0, "fact": 3068.0, "proy": 3806.8, "meta": 3000.0}, {"y": 2024, "m": 6, "contratos": 1620.9, "fact": 4140.5, "proy": 5335.9, "meta": 3000.0}, {"y": 2024, "m": 7, "contratos": 6653.0, "fact": 4077.9, "proy": 5570.1, "meta": 3000.0}, {"y": 2024, "m": 8, "contratos": 65.0, "fact": 1114.9, "proy": 3247.1, "meta": 3000.0}, {"y": 2024, "m": 9, "contratos": 0.0, "fact": 1695.3, "proy": 1728.3, "meta": 3000.0}, {"y": 2024, "m": 10, "contratos": 1053.4, "fact": 1438.2, "proy": 1441.0, "meta": 3000.0}, {"y": 2024, "m": 11, "contratos": 1377.5, "fact": 3278.0, "proy": 3768.5, "meta": 3000.0}, {"y": 2024, "m": 12, "contratos": 744.6, "fact": 2517.4, "proy": 2784.5, "meta": 3000.0}, {"y": 2025, "m": 1, "contratos": 1827.8, "fact": 2508.8, "proy": 4051.9, "meta": 3000.0}, {"y": 2025, "m": 2, "contratos": 6691.9, "fact": 1423.2, "proy": 3512.3, "meta": 3000.0}, {"y": 2025, "m": 3, "contratos": 0.0, "fact": 1733.2, "proy": 4397.7, "meta": 3000.0}, {"y": 2025, "m": 4, "contratos": 141.2, "fact": 1605.7, "proy": 3651.1, "meta": 3000.0}, {"y": 2025, "m": 5, "contratos": 20927.9, "fact": 3693.1, "proy": 3506.6, "meta": 3000.0}, {"y": 2025, "m": 6, "contratos": 1461.5, "fact": 4073.5, "proy": 5023.2, "meta": 3000.0}, {"y": 2025, "m": 7, "contratos": 422.0, "fact": 3835.6, "proy": 5171.2, "meta": 3000.0}, {"y": 2025, "m": 8, "contratos": 189.5, "fact": 3292.0, "proy": 3391.6, "meta": 3000.0}, {"y": 2025, "m": 9, "contratos": 803.0, "fact": 4456.1, "proy": 4434.9, "meta": 3000.0}, {"y": 2025, "m": 10, "contratos": 3333.3, "fact": 3758.4, "proy": 4145.1, "meta": 3000.0}, {"y": 2025, "m": 11, "contratos": 1979.5, "fact": 4286.7, "proy": 4305.1, "meta": 3000.0}, {"y": 2025, "m": 12, "contratos": 30.0, "fact": 3406.9, "proy": 3611.1, "meta": 3000.0}, {"y": 2026, "m": 1, "contratos": 6646.4, "fact": 3926.8, "proy": null, "meta": null}, {"y": 2026, "m": 2, "contratos": 77.3, "fact": 1958.6, "proy": null, "meta": null}, {"y": 2026, "m": 3, "contratos": 4830.3, "fact": 5141.3, "proy": null, "meta": null}, {"y": 2026, "m": 4, "contratos": 3593.7, "fact": 3035.7, "proy": null, "meta": null}, {"y": 2026, "m": 5, "contratos": 40.0, "fact": 2522.7, "proy": null, "meta": null}, {"y": 2026, "m": 6, "contratos": 0.0, "fact": 0.0, "proy": null, "meta": null}, {"y": 2026, "m": 7, "contratos": 0.0, "fact": 0.0, "proy": null, "meta": null}, {"y": 2026, "m": 8, "contratos": 0.0, "fact": 0.0, "proy": null, "meta": null}, {"y": 2026, "m": 9, "contratos": 0.0, "fact": 0.0, "proy": null, "meta": null}, {"y": 2026, "m": 10, "contratos": 0.0, "fact": 0.0, "proy": null, "meta": null}, {"y": 2026, "m": 11, "contratos": 0.0, "fact": 0.0, "proy": null, "meta": null}, {"y": 2026, "m": 12, "contratos": 0.0, "fact": 0.0, "proy": null, "meta": null}];
+
+let currentRole = 'gerencia';
+let currentView = 'obras';
+
+/* ── OBRAS: ciclo de vida real CJ Traffic (datos reales del Excel) ── */
+const FASES_OBRAS = ['Inicio y planificación', 'Gestión de permisos', 'Ejecución', 'En proceso de recepción', 'Terminado', 'Cerrado'];
+// Gestiones reales que rastrea la planilla de Javier
+const GESTIONES_REAL = [['permisos', 'Permisos'], ['uoct', 'UOCT'], ['enlace', 'Enlace'], ['empalme', 'Empalme'], ['recepcion', 'Recepción UOCT']];
+const UF = 39000; // 1 UF ≈ CLP $39.000 (referencial)
+const GANTT_MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+// Mes índice: 0 = Ene-2025 … 23 = Dic-2026
+function mIdx(y, m) { return (y - 2025) * 12 + (m - 1); }
+function clampM(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+// Estado de una gestión a partir de su texto
+function gstat(v) {
+  const s = (v || '').toLowerCase();
+  if (!s) return 'na';
+  if (/aprobad|recepcion|recepción|\bcj\b|\bok\b|listo|terminado/.test(s)) return 'ok';
+  if (/pend|esper/.test(s)) return 'pend';
+  return 'gestion';
+}
+// Construye el modelo de obras desde los datos reales embebidos
+let obras = OBRAS_REAL.map((p, i) => {
+  let s = (p.asig && p.asig[0]) ? clampM(mIdx(p.asig[0], p.asig[1]), 0, 22) : 6;
+  let e = (p.plazo && p.plazo[0]) ? clampM(mIdx(p.plazo[0], p.plazo[1]), s + 1, 23) : clampM(s + 5, s + 1, 23);
+  return { id: i + 1, con: p.con, nombre: p.nombre, cruce: p.cruce, comuna: p.comuna, tipo: p.tipo,
+    mandante: p.mandante, coord: p.coord, fase: p.fase, detenido: p.detenido, avance: p.avance,
+    contratoUF: p.contratoUF, facturadoUF: p.facturadoUF, saldoUF: p.saldoUF,
+    gestiones: p.g, gantt: { s, e }, comentarios: p.comentarios || [] };
+});
+
+/* ── BODEGA: inventario nativo (sin Defontana) ── */
+// Inventario: el stock se descuenta SOLO al despachar; ingresos lo suman.
+let inventario = {
+  ctrl_a5:    { nombre: 'Controlador Auter A5',        qty: 3,   min: 2,   unit: 'un',  costo: 1850000 },
+  gw_trb256:  { nombre: 'Gateway Teltonika TRB256',    qty: 1,   min: 3,   unit: 'un',  costo: 660000 },
+  cable12:    { nombre: 'Cable 12 AWG XLPE',           qty: 850, min: 500, unit: 'm',   costo: 950 },
+  poste6:     { nombre: 'Poste galvanizado 6m',        qty: 14,  min: 10,  unit: 'un',  costo: 485000 },
+  lampara200: { nombre: 'Lámpara LED 200mm (roja)',    qty: 8,   min: 24,  unit: 'un',  costo: 14000 },
+  cinta:      { nombre: 'Cinta aislante + terminales', qty: 40,  min: 15,  unit: 'kit', costo: 42000 },
+};
+let pedidos = [
+  { id: 101, stockKey: 'cable12',    item: 'Cable 12 AWG XLPE',        qty: 300, cant: '300 m', monto: 285000,  solicitante: 'Carlos', area: 'Pdte. Riesco',       critico: false, estado: 'solicitud' },
+  { id: 102, stockKey: 'ctrl_a5',    item: 'Controlador Auter A5',     qty: 1,   cant: '1 un',  monto: 1850000, solicitante: 'Carlos', area: 'Edif. Jorge Cáceres', critico: true,  estado: 'critica' },
+  { id: 103, stockKey: 'cinta',      item: 'Cinta aislante + terminales', qty: 1, cant: '1 kit', monto: 42000,  solicitante: 'Pablo',  area: 'Taller',             critico: false, estado: 'solicitud' },
+  { id: 104, stockKey: 'gw_trb256',  item: 'Gateway Teltonika TRB256', qty: 2,   cant: '2 un',  monto: 1320000, solicitante: 'Febe',   area: 'Lab. Programación',  critico: true,  estado: 'critica' },
+  { id: 105, stockKey: 'lampara200', item: 'Lámparas LED 200mm rojas', qty: 12,  cant: '12 un', monto: 168000,  solicitante: 'Carlos', area: 'Pie Andino 2',       critico: false, estado: 'despachado' },
+  { id: 106, stockKey: 'poste6',     item: 'Postes galvanizados 6m',   qty: 8,   cant: '8 un',  monto: 3880000, solicitante: 'Carlos', area: 'Lo Cañas Etapa 2',   critico: true,  estado: 'aprobada' },
+];
+let movimientos = [
+  { f: '12-06', tipo: 'ingreso',  stockKey: 'cable12',    qty: 500, detalle: 'Ingreso proveedor · Cables del Sur' },
+  { f: '11-06', tipo: 'despacho', stockKey: 'lampara200', qty: 12,  detalle: 'Despacho · Pie Andino 2 (#105)' },
+];
+
+const FASES_TALLER = ['Por Armar', 'Cableado', 'Conexión Relés', 'Pruebas Banco', 'Listo'];
+let tableros = [
+  { id: 201, nombre: 'Tablero Rosario Norte',   fase: 'Pruebas Banco',  tecnico: 'Pablo',     fw: 'auter_a5_rosario_v2.4.0.bin' },
+  { id: 202, nombre: 'Tablero Av. Grecia',      fase: 'Conexión Relés', tecnico: 'Guillermo', fw: null },
+  { id: 203, nombre: 'Tablero V. Mackenna',     fase: 'Por Armar',      tecnico: '—',         fw: null },
+  { id: 204, nombre: 'Tablero Maipú Centro',    fase: 'Listo',          tecnico: 'Pablo',     fw: null },
+  { id: 205, nombre: 'Tablero Los Pajaritos 2', fase: 'Cableado',       tecnico: 'Guillermo', fw: null },
+];
+
+let firmwares = [
+  { id: 301, archivo: 'auter_a5_rosario_v2.4.0.bin', cruce: 'Rosario Norte / Apoquindo', version: 'v2.4.0', estado: 'En prueba',  fecha: '10 Jun' },
+  { id: 302, archivo: 'auter_a5_grecia_v1.9.2.bin',  cruce: 'Av. Grecia / Marathon',     version: 'v1.9.2', estado: 'Rechazado', fecha: '08 Jun', feedback: 'Relé 4 no conmuta en plan nocturno. Revisar tabla de fases.' },
+  { id: 303, archivo: 'auter_a5_maipu_v2.3.5.bin',   cruce: 'Conexión UOCT Maipú',       version: 'v2.3.5', estado: 'Aprobado',  fecha: '05 Jun', feedback: 'Prueba de banco OK. Instalado en terreno.' },
+];
+
+let iotRows = [
+  { cruce: 'CRX-001', ubicacion: 'Rosario Norte / Apoquindo',      ctrl: 'Auter A5',     gw: 'Teltonika TRB256', sim: 'Entel M2M', estado: 'online',  signal: 'hace 38 s' },
+  { cruce: 'CRX-002', ubicacion: 'Av. Grecia / Marathon',          ctrl: 'Auter A5',     gw: 'Teltonika TRB145', sim: 'Entel M2M', estado: 'online',  signal: 'hace 2 min' },
+  { cruce: 'CRX-003', ubicacion: 'V. Mackenna / Departamental',    ctrl: 'Auter A4F',    gw: 'Teltonika TRB256', sim: 'Movistar IoT', estado: 'offline', signal: 'hace 6 h' },
+  { cruce: 'CRX-004', ubicacion: 'Maipú Centro / 5 de Abril',      ctrl: 'Auter A5',     gw: 'Teltonika RUT241', sim: 'Entel M2M', estado: 'online',  signal: 'hace 1 min' },
+  { cruce: 'CRX-005', ubicacion: 'Los Pajaritos / Las Torres',     ctrl: 'Peek ATC-1000',gw: 'Teltonika TRB256', sim: 'Claro M2M', estado: 'degradado', signal: 'hace 25 min' },
+];
+
+let agenda = [
+  { hora: '08:00', tarea: 'Retiro de materiales en bodega (kit Rosario Norte)', lugar: 'Bodega Central',          tipo: 'logística' },
+  { hora: '09:30', tarea: 'Armado tablero eléctrico — Conexión de relés',       lugar: 'Taller',                  tipo: 'taller' },
+  { hora: '12:00', tarea: 'Prueba de banco firmware v2.4.0 (Tablero Rosario)',  lugar: 'Banco de Pruebas',        tipo: 'pruebas' },
+  { hora: '15:00', tarea: 'Mantención correctiva — lámpara quemada',            lugar: 'Cruce Grecia / Marathon', tipo: 'terreno' },
+  { hora: '17:30', tarea: 'Reporte diario y solicitud de insumos',              lugar: 'Taller',                  tipo: 'logística' },
+];
+
+let calendarTasks = {
+  2:  [{ t: 'Mant. preventiva CRX-002', done: true }],
+  4:  [{ t: 'Poda visual semáforos zona sur', done: true }],
+  9:  [{ t: 'Inspección UOCT Maipú', done: true }],
+  12: [{ t: 'Prueba banco Rosario', done: false }, { t: 'Correctiva Grecia', done: false }],
+  16: [{ t: 'Cambio lámparas Pajaritos', done: false }],
+  19: [{ t: 'Mant. preventiva CRX-005', done: false }],
+  24: [{ t: 'Auditoría gateways (Elías)', done: false }],
+  27: [{ t: 'Revisión tableros stock', done: false }],
+};
+
+const AVISOS = [
+  { meta: 'Hoy, 09:30 - Bodega',           html: 'Juan Herrera despachó 50m de cable J051 solicitado por Técnico Guillermo para reparación rutinaria.', roles: ['gerencia','jefatura','bodega','coordinador','tecnico'] },
+  { meta: 'Ayer - Taller de Armado',       html: 'Febe Benecke cargó la programación v2.4 del cruce <i>Apoquindo con Carol Urzúa</i> para pruebas en el banco físico.', roles: ['gerencia','jefatura','firmware','tecnico','desarrollo'] },
+  { meta: 'Hoy, 08:15 - Jefatura',         html: 'Víctor Aburto aprobó el despacho de un controlador Auter A5 para la obra Av. Grecia.', roles: ['gerencia','jefatura','bodega','coordinador'] },
+  { meta: 'Hoy, 07:50 - Mantención',       html: 'Cuadrilla asignada a mantención correctiva en cruce Grecia / Marathon (lámpara quemada).', roles: ['jefatura','tecnico'] },
+  { meta: 'Ayer - Telemetría',             html: 'Gateway TRB256 del cruce V. Mackenna sin señal hace 6 horas. Revisar SIM Movistar IoT.', roles: ['gerencia','jefatura','desarrollo'] },
+  { meta: 'Ayer - Gerencia',               html: 'Recordatorio: cierre de estados de pago de Junio el 25/06. Coordinar avances con Javiera Orozco.', roles: ['gerencia','coordinador'] },
+  { meta: 'Hoy, 08:40 - Bodega',           html: 'Stock de lámparas LED 200mm bajo el mínimo (8 de 24). Generar orden de compra.', roles: ['gerencia','jefatura','bodega'] },
+  { meta: 'Ayer - Banco de Pruebas',       html: 'Firmware v1.9.2 de Av. Grecia fue rechazado: relé 4 no conmuta en plan nocturno.', roles: ['firmware','desarrollo','jefatura'] },
+];
+
+const SOFTWARE = [
+  { version: 'v1.0.0 (Actual)', fecha: '12 Junio, 2026', titulo: 'Migración de Planillas Completada:', texto: 'Se dio de baja la planilla de Excel de Monitoreo. Toda la gestión de ID_Cruce y gateways Teltonika TRB256 ahora vive nativamente en el módulo de Desarrollo Tecnológico.', roles: ['gerencia','jefatura','desarrollo'] },
+  { version: 'v1.0.0 (Actual)', fecha: '12 Junio, 2026', titulo: 'Nuevo flujo de firmware:', texto: 'Las cargas de programación quedan disponibles automáticamente en "Pruebas Banco" del taller, con feedback de aprobación o rechazo hacia Programación.', roles: ['firmware','tecnico','desarrollo'] },
+  { version: 'v0.9.5',          fecha: '05 Junio, 2026', titulo: 'Filtro crítico de bodega activado:', texto: 'El hardware mayor (controladores, gateways) ahora requiere aprobación de Jefatura antes del despacho. Los consumibles mantienen el flujo rápido.', roles: ['gerencia','jefatura','bodega','coordinador','tecnico','firmware'] },
+  { version: 'v0.9.4',          fecha: '01 Junio, 2026', titulo: 'Calendario con checklist:', texto: 'Los técnicos ahora pueden marcar como realizadas las tareas asignadas en el Calendario Maestro de Mantención.', roles: ['jefatura','tecnico','gerencia'] },
+];
+
+function renderInicio() {
+  const av = document.getElementById('avisosList');
+  const sw = document.getElementById('softwareList');
+  if (!av || !sw) return;
+
+  const avisos = AVISOS.filter(a => a.roles.includes(currentRole));
+  av.innerHTML = avisos.map(a => `
+    <div class="py-3 first:pt-0 last:pb-0">
+      <p class="text-[11px] text-neutral-500 mb-1">${a.meta}</p>
+      <p class="text-sm text-neutral-200 leading-relaxed">${a.html}</p>
+    </div>`).join('') || '<p class="text-sm text-neutral-500 py-3">Sin avisos para tu rol por ahora.</p>';
+
+  const notas = SOFTWARE.filter(s => s.roles.includes(currentRole));
+  sw.innerHTML = notas.map(s => `
+    <div class="bg-neutral-950 border border-neutral-700 rounded-xl p-4">
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <span class="text-[11px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-full">${s.version}</span>
+        <span class="text-[11px] text-neutral-500">${s.fecha}</span>
+      </div>
+      <p class="text-sm font-bold text-neutral-100">${s.titulo}</p>
+      <p class="text-xs text-neutral-400 mt-1 leading-relaxed">${s.texto}</p>
+    </div>`).join('') || '<p class="text-sm text-neutral-500">Sin novedades de software para tu rol.</p>';
+}
+
+function abrirSistema(nombre) {
+  toast(`Abriendo ${nombre}… (sistema externo simulado)`, 'info');
+}
+
+/* ═══════════════════════ RBAC ═══════════════════════ */
+
+function applyRole() {
+  const role = ROLES[currentRole];
+  document.getElementById('userName').textContent = role.name;
+  document.getElementById('userRoleLabel').textContent = role.label;
+  const av = document.getElementById('userAvatar');
+  av.textContent = role.initials;
+  av.className = `w-9 h-9 rounded-full ${role.color} flex items-center justify-center text-xs font-bold text-white`;
+
+  // Mostrar/ocultar todo elemento con data-roles
+  document.querySelectorAll('[data-roles]').forEach(el => {
+    const allowed = el.dataset.roles.split(',').map(s => s.trim());
+    el.classList.toggle('hidden', !allowed.includes(currentRole));
+  });
+
+  // Si la vista actual quedó prohibida, ir a la vista "home" del rol
+  const navBtn = document.querySelector(`#sidebarNav [data-view="${currentView}"]`);
+  if (!navBtn || navBtn.classList.contains('hidden')) {
+    switchView(role.home);
+  } else {
+    renderAll();
+    normalizeTabs();
+  }
+}
+
+function canApproveCritical() { return currentRole === 'gerencia' || currentRole === 'jefatura'; }
+
+/* ═══════════════════════ NAVEGACIÓN ═══════════════════════ */
+
+const VIEW_TITLES = {
+  inicio: 'Inicio', obras: 'Obras y Proyectos', bodega: 'Bodega y Despachos', cubicacion: 'Cubicación (Gerencia)',
+  finanzas: 'Finanzas y Contabilidad',
+  taller: 'Taller y Mantención', firmware: 'Firmware de Controladores', iot: 'Infraestructura IoT', agenda: 'Agenda Diaria',
+};
+
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+  document.getElementById('view-' + view).classList.remove('hidden');
+  document.getElementById('viewTitle').textContent = VIEW_TITLES[view] || view;
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    const active = b.dataset.view === view;
+    b.classList.toggle('bg-amber-500/10', active);
+    b.classList.toggle('text-amber-400', active);
+    b.classList.toggle('text-neutral-300', !active);
+  });
+  renderAll();
+  normalizeTabs();
+}
+
+/* ── Sub-pestañas dentro de un módulo ── */
+function switchTab(view, name) {
+  const sec = document.getElementById('view-' + view);
+  if (!sec) return;
+  sec.querySelectorAll('.subtab').forEach(b => b.classList.toggle('active', b.dataset.subtab === name));
+  sec.querySelectorAll('.tabpane').forEach(p => p.classList.toggle('active', p.dataset.pane === name));
+  if (view === 'obras' && name === 'financiero') renderFinanciero();
+  if (view === 'finanzas' && name === 'resumen') renderFinResumen();
+}
+// Si la pestaña activa quedó oculta por rol, salta a la primera visible
+function normalizeTabs() {
+  ['obras', 'bodega', 'finanzas'].forEach(v => {
+    const sec = document.getElementById('view-' + v);
+    if (!sec) return;
+    const act = sec.querySelector('.subtab.active');
+    if (!act || act.classList.contains('hidden')) {
+      const first = [...sec.querySelectorAll('.subtab')].find(b => !b.classList.contains('hidden'));
+      if (first) switchTab(v, first.dataset.subtab);
+    }
+  });
+}
+
+document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
+document.getElementById('roleSelect').addEventListener('change', e => {
+  currentRole = e.target.value;
+  applyRole();
+  toast(`Sesión cambiada: ${ROLES[currentRole].name} (${ROLES[currentRole].label})`, 'info');
+});
+
+/* ═══════════════════════ RENDER: KANBAN OBRAS ═══════════════════════ */
+
+const FASE_COLORS = {
+  'Inicio y planificación':   'border-sky-500/40 text-sky-400',
+  'Gestión de permisos':      'border-amber-500/40 text-amber-400',
+  'Ejecución':                'border-orange-500/40 text-orange-400',
+  'En proceso de recepción':  'border-violet-500/40 text-violet-400',
+  'Terminado':                'border-emerald-500/40 text-emerald-400',
+  'Cerrado':                  'border-neutral-600 text-neutral-400',
+};
+const GEST_STYLE = {
+  na:      'bg-neutral-800 text-neutral-500 border-neutral-700',
+  pend:    'bg-neutral-800 text-neutral-300 border-neutral-600',
+  gestion: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  ok:      'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+};
+const MESES_G = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const fmtUF = n => n.toLocaleString('es-CL', { maximumFractionDigits: 0 }) + ' UF';
+const fmtCLP = n => '$' + Math.round(n).toLocaleString('es-CL');
+
+const TODAY_IDX = mIdx(2026, 6); // Jun 2026
+function gestLabel(k, v) {
+  const t = (v || '').replace(/^\d+\.-\s*/, '').trim();
+  return t || (k === 'enlace' || k === 'empalme' ? 'N/A' : 'Sin gestión');
+}
+
+/* ── KPIs de cartera ── */
+function renderObrasKpis() {
+  const cont = document.getElementById('obrasKpis');
+  if (!cont) return;
+  const contrato  = obras.reduce((s, o) => s + o.contratoUF, 0);
+  const facturado = obras.reduce((s, o) => s + o.facturadoUF, 0);
+  const saldo     = obras.reduce((s, o) => s + o.saldoUF, 0);
+  const detenidos = obras.filter(o => o.detenido).length;
+  const card = (label, val, sub, color) => `
+    <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+      <p class="text-xs text-neutral-400 mb-1">${label}</p>
+      <p class="text-2xl font-extrabold ${color}">${val}</p>
+      <p class="text-[11px] text-neutral-500 mt-1">${sub}</p>
+    </div>`;
+  cont.innerHTML =
+    card('Monto Cartera', fmtUF(contrato), `${obras.length} proyectos activos`, 'text-neutral-100') +
+    card('Facturado', fmtUF(facturado), `${Math.round(facturado / contrato * 100) || 0}% de la cartera`, 'text-emerald-400') +
+    card('Por Facturar', fmtUF(saldo), `≈ ${fmtCLP(saldo * UF)}`, 'text-amber-400') +
+    card('Proyectos Activos', obras.length, `en seguimiento`, 'text-sky-400') +
+    card('Detenidos', detenidos, `dependencia externa`, detenidos ? 'text-red-400' : 'text-neutral-100');
+}
+
+/* ── Alertas de resumen (Q&A Javier: cuellos de botella) ── */
+function renderObrasAlertas() {
+  const cont = document.getElementById('obrasAlertas');
+  if (!cont) return;
+  const det = obras.filter(o => o.detenido);
+  const permisos = obras.filter(o => o.fase === 'Gestión de permisos');
+  const verFin = perm('obrasFinanzas') !== 'none';
+  const topSaldo = [...obras].sort((a, b) => b.saldoUF - a.saldoUF).slice(0, 4);
+  const recep = obras.filter(o => o.fase === 'En proceso de recepción');
+  const lista = (arr, fn) => arr.length ? arr.slice(0, 5).map(fn).join('') : '<p class="text-xs text-neutral-600">—</p>';
+  const cardAlert = (color, title, count, body) => `
+    <div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-xs font-bold uppercase tracking-wider text-neutral-400">${title}</p>
+        <span class="text-lg font-extrabold ${color}">${count}</span>
+      </div>${body}</div>`;
+  const row = o => `<button onclick="openProyecto(${o.id})" class="w-full text-left text-xs text-neutral-300 hover:text-amber-400 py-1 truncate block">${o.nombre}</button>`;
+  cont.innerHTML =
+    cardAlert('text-red-400', 'Detenidos · dependencia externa', det.length, lista(det, row)) +
+    cardAlert('text-amber-400', 'En gestión de permisos', permisos.length, lista(permisos, row)) +
+    (verFin
+      ? cardAlert('text-emerald-400', 'Mayor saldo por facturar', fmtUF(topSaldo.reduce((s, o) => s + o.saldoUF, 0)),
+          topSaldo.map(o => `<button onclick="openProyecto(${o.id})" class="w-full flex justify-between gap-2 text-xs py-1 hover:text-amber-400"><span class="truncate text-neutral-300">${o.nombre}</span><span class="text-amber-400 font-semibold shrink-0">${fmtUF(o.saldoUF)}</span></button>`).join(''))
+      : cardAlert('text-violet-400', 'En proceso de recepción', recep.length, lista(recep, row)));
+}
+
+/* ── Carta Gantt editable (ventana dinámica 2025-2026) ── */
+function renderObrasGantt() {
+  const cont = document.getElementById('obrasGantt');
+  if (!cont || !obras.length) return;
+  const lo = Math.min(...obras.map(o => o.gantt.s)), hi = Math.max(...obras.map(o => o.gantt.e));
+  const N = hi - lo + 1;
+  const colW = 30, labelW = 220;
+  const minW = labelW + N * colW;
+  const monthHead = [];
+  for (let idx = lo; idx <= hi; idx++) {
+    const y = 2025 + Math.floor(idx / 12), m = ((idx % 12) + 12) % 12;
+    monthHead.push(`<div class="text-center ${m === 0 ? 'border-l border-neutral-700' : ''}">${GANTT_MESES[m]}${m === 0 ? `<span class="block text-[8px] text-neutral-600">${y}</span>` : ''}</div>`);
+  }
+  const head = `<div class="flex items-end gap-2 mb-2" style="min-width:${minW}px">
+    <div class="shrink-0" style="width:${labelW}px"></div>
+    <div class="flex-1 grid text-[9px] text-neutral-500" style="grid-template-columns:repeat(${N},1fr)">${monthHead.join('')}</div>
+  </div>`;
+  const rows = [...obras].sort((a, b) => a.gantt.s - b.gantt.s).map(o => {
+    const left = (o.gantt.s - lo) / N * 100, width = (o.gantt.e - o.gantt.s + 1) / N * 100;
+    const realW = width * o.avance / 100, realColor = o.detenido ? 'bg-red-500' : 'bg-emerald-500';
+    const todayLeft = (TODAY_IDX - lo + 0.5) / N * 100;
+    return `<div class="flex items-center gap-2 mb-1" style="min-width:${minW}px">
+      <button onclick="openProyecto(${o.id})" class="shrink-0 text-left text-xs text-neutral-300 hover:text-amber-400 truncate" style="width:${labelW}px" title="${o.nombre}">
+        <span class="font-mono text-neutral-500 text-[10px]">${o.con}</span> ${o.nombre}
+      </button>
+      <div class="flex-1 relative h-5 bg-neutral-950 rounded gantt-grid" style="background-size:${100 / N}% 100%">
+        ${TODAY_IDX >= lo && TODAY_IDX <= hi ? `<div class="absolute top-0 bottom-0 w-px bg-amber-500/60 z-10" style="left:${todayLeft}%"></div>` : ''}
+        <div onclick="openProyecto(${o.id})" class="absolute top-0 h-5 rounded bg-neutral-700/70 cursor-pointer" style="left:${left}%;width:${width}%"></div>
+        <div class="absolute top-0 h-5 rounded ${realColor} pointer-events-none" style="left:${left}%;width:${realW}%"></div>
+        <span class="absolute top-0.5 text-[10px] font-bold text-neutral-100 pointer-events-none" style="left:calc(${left}% + 4px)">${o.avance}%${o.detenido ? ' ⏸' : ''}</span>
+      </div>
+    </div>`;
+  }).join('');
+  cont.innerHTML = head + rows;
+}
+
+/* ── Kanban de proyectos (con filtro) ── */
+function renderKanbanObras() {
+  const cont = document.getElementById('kanbanObras');
+  if (!cont) return;
+  const canWrite = perm('obrasKanban') === 'write';
+  const q = (document.getElementById('obrasFiltro')?.value || '').toLowerCase();
+  const visibles = obras.filter(o => !q || (o.nombre + o.cruce + o.coord + o.con).toLowerCase().includes(q));
+  const cEl = document.getElementById('obrasCount');
+  if (cEl) cEl.textContent = `${visibles.length} de ${obras.length} proyectos`;
+  cont.innerHTML = FASES_OBRAS.filter(f => f !== 'Cerrado').map(fase => {
+    const cards = visibles.filter(o => o.fase === fase);
+    const [bd, txt] = FASE_COLORS[fase].split(' ');
+    return `
+    <div class="kanban-col bg-neutral-900 border border-neutral-800 rounded-xl p-3 flex-1">
+      <div class="flex items-center justify-between px-1 mb-3">
+        <span class="text-xs font-bold uppercase tracking-wide ${txt}">${fase}</span>
+        <span class="text-[10px] bg-neutral-800 text-neutral-400 px-1.5 py-0.5 rounded-full font-bold">${cards.length}</span>
+      </div>
+      <div class="space-y-2 max-h-[60vh] overflow-y-auto">
+        ${cards.map(o => {
+          const gOk = GESTIONES_REAL.filter(([k]) => gstat(o.gestiones[k]) === 'ok').length;
+          return `
+        <div onclick="openProyecto(${o.id})" class="bg-neutral-950 border ${o.detenido ? 'border-red-500/50 pulse-red' : bd} rounded-lg p-3 cursor-pointer hover:border-amber-500/50 transition">
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-sm font-semibold text-neutral-100 leading-snug">${o.nombre}</p>
+            ${o.detenido ? '<span class="text-[9px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full shrink-0">DET</span>' : ''}
+          </div>
+          <p class="text-[11px] text-neutral-500 mt-1"><span class="font-mono">${o.con}</span> · ${o.cruce}</p>
+          <p class="text-[11px] text-neutral-500">${o.coord} · ${o.comuna}</p>
+          <div class="mt-2 h-1 bg-neutral-800 rounded-full overflow-hidden"><div class="h-full ${o.detenido ? 'bg-red-500' : 'bg-emerald-500'}" style="width:${o.avance}%"></div></div>
+          <div class="flex justify-between items-center mt-2">
+            <span class="text-[10px] text-neutral-500">${o.avance}% · gest. ${gOk}/5</span>
+            ${canWrite ? `<div class="flex gap-1" onclick="event.stopPropagation()">
+              ${FASES_OBRAS.indexOf(fase) > 0 ? `<button onclick="moveObra(${o.id},-1)" class="text-[11px] bg-neutral-800 hover:bg-neutral-700 rounded px-1.5 py-0.5">◀</button>` : ''}
+              ${FASES_OBRAS.indexOf(fase) < FASES_OBRAS.length - 2 ? `<button onclick="moveObra(${o.id},1)" class="text-[11px] bg-neutral-800 hover:bg-neutral-700 rounded px-1.5 py-0.5">▶</button>` : ''}
+            </div>` : ''}
+          </div>
+        </div>`;
+        }).join('') || '<p class="text-[11px] text-neutral-600 px-1 py-3 text-center">—</p>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function moveObra(id, dir) {
+  if (perm('obrasKanban') !== 'write') { toast('Tu rol tiene el Kanban en solo lectura.', 'error'); return; }
+  const o = obras.find(x => x.id === id);
+  const order = FASES_OBRAS.filter(f => f !== 'Cerrado');
+  const i = order.indexOf(o.fase) + dir;
+  if (i >= 0 && i < order.length) {
+    o.fase = order[i];
+    o.avance = Math.max(o.avance, Math.round(i / (order.length - 1) * 100));
+    toast(`"${o.nombre}" movido a ${o.fase}.`, 'success');
+    renderObrasKpis(); renderObrasAlertas(); renderObrasGantt(); renderKanbanObras();
+  }
+}
+
+/* ── Modal de detalle de proyecto ── */
+let currentProyecto = null;
+function openProyecto(id) {
+  currentProyecto = id;
+  const o = obras.find(x => x.id === id);
+  const write = perm('obrasKanban') === 'write';
+  const verFin = perm('obrasFinanzas') !== 'none';
+  const [, txt] = FASE_COLORS[o.fase].split(' ');
+
+  const gestChips = GESTIONES_REAL.map(([k, label]) => {
+    const st = gstat(o.gestiones[k]);
+    return `<button ${write ? `onclick="editGestion(${id},'${k}','${label}')"` : 'disabled'}
+      class="text-left border ${GEST_STYLE[st]} rounded-lg px-3 py-2 ${write ? 'hover:ring-1 hover:ring-amber-500/40 cursor-pointer' : 'cursor-default'}">
+      <p class="text-[10px] uppercase tracking-wide text-neutral-400">${label}</p>
+      <p class="text-xs font-semibold mt-0.5">${gestLabel(k, o.gestiones[k])}</p>
+    </button>`;
+  }).join('');
+
+  const fin = verFin ? `
+    <div class="px-5 py-4 border-t border-neutral-800">
+      <p class="text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-3">Financiero (Gerencia)</p>
+      <div class="grid grid-cols-3 gap-3 text-sm">
+        <div><p class="text-[11px] text-neutral-500">Contrato</p><p class="font-bold text-neutral-100">${fmtUF(o.contratoUF)}</p></div>
+        <div><p class="text-[11px] text-neutral-500">Facturado</p><p class="font-bold text-emerald-400">${fmtUF(o.facturadoUF)}</p></div>
+        <div><p class="text-[11px] text-neutral-500">Saldo</p><p class="font-bold text-amber-400">${fmtUF(o.saldoUF)}</p></div>
+      </div>
+    </div>` : '';
+
+  const bitacora = o.comentarios.map(c => `
+    <div class="flex gap-3 py-2 border-b border-neutral-800/60 last:border-0">
+      <span class="text-[11px] font-mono text-neutral-500 shrink-0 w-12">${c.f || '—'}</span>
+      <p class="text-xs text-neutral-300 leading-relaxed">${c.t}</p>
+    </div>`).join('');
+
+  const gantt = write ? `
+    <div class="px-5 py-4 border-t border-neutral-800">
+      <p class="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-2">Programación (Gantt)</p>
+      <div class="flex items-center gap-4 text-xs">
+        <div class="flex items-center gap-1.5"><span class="text-neutral-500">Inicio:</span>
+          <button onclick="shiftGantt(${id},'s',-1)" class="bg-neutral-800 hover:bg-neutral-700 rounded px-1.5">−</button>
+          <span class="font-mono text-neutral-200 w-16 text-center">${ganttMonthLabel(o.gantt.s)}</span>
+          <button onclick="shiftGantt(${id},'s',1)" class="bg-neutral-800 hover:bg-neutral-700 rounded px-1.5">+</button></div>
+        <div class="flex items-center gap-1.5"><span class="text-neutral-500">Fin:</span>
+          <button onclick="shiftGantt(${id},'e',-1)" class="bg-neutral-800 hover:bg-neutral-700 rounded px-1.5">−</button>
+          <span class="font-mono text-neutral-200 w-16 text-center">${ganttMonthLabel(o.gantt.e)}</span>
+          <button onclick="shiftGantt(${id},'e',1)" class="bg-neutral-800 hover:bg-neutral-700 rounded px-1.5">+</button></div>
+      </div>
+    </div>` : '';
+
+  const acciones = write ? `
+    <div class="px-5 py-4 border-t border-neutral-800 flex flex-wrap gap-2">
+      <button onclick="moveObra(${id},-1)" class="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-2 rounded-lg">◀ Retroceder</button>
+      <button onclick="moveObra(${id},1)" class="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-2 rounded-lg">Avanzar ▶</button>
+      <button onclick="setAvance(${id})" class="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-2 rounded-lg">% Avance</button>
+      <button onclick="toggleDetenido(${id})" class="text-xs font-semibold ${o.detenido ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-red-600/80 hover:bg-red-600 text-white'} px-3 py-2 rounded-lg">${o.detenido ? 'Reanudar' : 'Detener'}</button>
+      <button onclick="addComentario(${id})" class="text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-neutral-950 px-3 py-2 rounded-lg ml-auto">+ Comentario</button>
+    </div>` : `<div class="px-5 py-3 border-t border-neutral-800 text-[11px] text-neutral-500 italic">Tu rol tiene este proyecto en modo lectura.</div>`;
+
+  document.getElementById('proyectoModalBody').innerHTML = `
+    <div class="px-5 py-4 border-b border-neutral-800 flex items-start justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-mono text-xs text-neutral-500">CON ${o.con}</span>
+          <span class="text-[10px] font-bold uppercase tracking-wide ${txt} border border-current/40 px-2 py-0.5 rounded-full">${o.fase}</span>
+          ${o.detenido ? '<span class="text-[10px] font-bold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">DETENIDO</span>' : ''}
+        </div>
+        <h3 class="text-lg font-bold text-neutral-100 mt-1">${o.nombre}</h3>
+        <p class="text-xs text-neutral-500 mt-0.5">${o.cruce} · ${o.comuna} · ${o.tipo}</p>
+      </div>
+      <button onclick="closeProyecto()" class="text-neutral-500 hover:text-neutral-200 text-2xl leading-none">&times;</button>
+    </div>
+    <div class="px-5 py-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm border-b border-neutral-800">
+      <div><p class="text-[11px] text-neutral-500">Mandante</p><p class="text-neutral-200">${o.mandante || '—'}</p></div>
+      <div><p class="text-[11px] text-neutral-500">Responsable</p><p class="text-neutral-200">${o.coord}</p></div>
+      <div><p class="text-[11px] text-neutral-500">Avance</p><p class="text-neutral-200 font-bold">${o.avance}%</p></div>
+    </div>
+    <div class="px-5 py-4 border-b border-neutral-800">
+      <p class="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-3">Gestiones del proyecto ${write ? '<span class="text-neutral-600 normal-case font-normal">— clic para editar</span>' : ''}</p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">${gestChips}</div>
+    </div>
+    ${fin}
+    ${gantt}
+    <div class="px-5 py-4">
+      <p class="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-2">Bitácora de estado</p>
+      <div>${bitacora || '<p class="text-xs text-neutral-600">Sin comentarios.</p>'}</div>
+    </div>
+    ${acciones}`;
+  document.getElementById('proyectoModal').classList.remove('hidden');
+}
+function closeProyecto() { document.getElementById('proyectoModal').classList.add('hidden'); currentProyecto = null; }
+function ganttMonthLabel(idx) { const y = 2025 + Math.floor(idx / 12), m = ((idx % 12) + 12) % 12; return `${GANTT_MESES[m]}-${String(y).slice(2)}`; }
+
+function editGestion(id, k, label) {
+  const o = obras.find(x => x.id === id);
+  const v = prompt(`Estado de "${label}" para ${o.nombre}:`, o.gestiones[k] || '');
+  if (v === null) return;
+  o.gestiones[k] = v.trim();
+  renderKanbanObras(); openProyecto(id);
+}
+function shiftGantt(id, which, dir) {
+  const o = obras.find(x => x.id === id);
+  let v = clampM(o.gantt[which] + dir, 0, 23);
+  if (which === 's') v = Math.min(v, o.gantt.e);
+  if (which === 'e') v = Math.max(v, o.gantt.s);
+  o.gantt[which] = v;
+  renderObrasGantt(); openProyecto(id);
+}
+function setAvance(id) {
+  const o = obras.find(x => x.id === id);
+  const v = +prompt(`% de avance de "${o.nombre}":`, o.avance);
+  if (isNaN(v)) return;
+  o.avance = clampM(Math.round(v), 0, 100);
+  renderObrasGantt(); renderKanbanObras(); openProyecto(id);
+}
+function toggleDetenido(id) {
+  const o = obras.find(x => x.id === id);
+  o.detenido = !o.detenido;
+  toast(o.detenido ? `"${o.nombre}" marcado como DETENIDO.` : `"${o.nombre}" reanudado.`, o.detenido ? 'error' : 'success');
+  renderObrasKpis(); renderObrasAlertas(); renderObrasGantt(); renderKanbanObras(); openProyecto(id);
+}
+function addComentario(id) {
+  const txt = prompt('Nuevo comentario de bitácora:');
+  if (!txt || !txt.trim()) return;
+  const hoy = new Date();
+  const f = String(hoy.getDate()).padStart(2, '0') + '-' + String(hoy.getMonth() + 1).padStart(2, '0');
+  obras.find(x => x.id === id).comentarios.unshift({ f, t: txt.trim() });
+  toast('Comentario agregado a la bitácora.', 'success');
+  openProyecto(id);
+}
+function registrarEP() {
+  const o = obras.filter(x => x.saldoUF > 0).sort((a, b) => b.saldoUF - a.saldoUF)[0] || obras[0];
+  const monto = +prompt(`Registrar Estado de Pago para "${o.nombre}"\nSaldo por facturar: ${fmtUF(o.saldoUF)}\n\nMonto a facturar (UF):`, '50');
+  if (!monto || monto <= 0) return;
+  const real = Math.min(o.saldoUF, monto);
+  o.facturadoUF += real; o.saldoUF = Math.max(0, o.saldoUF - real);
+  toast(`EP registrado: ${fmtUF(real)} en "${o.nombre}".`, 'success');
+  renderObrasKpis(); renderObrasAlertas(); renderObrasGantt();
+}
+
+/* ── Financiero: automatiza la hoja "Grafico" de Javier ── */
+let finCharts = {};
+function renderFinanciero() {
+  if (perm('obrasFinanzas') === 'none') return;
+  const cv = document.getElementById('finCurva');
+  if (!cv || typeof Chart === 'undefined') return;
+  const labels = FIN_MENSUAL.map(f => `${GANTT_MESES[f.m - 1]} ${String(f.y).slice(2)}`);
+  let ar = 0, ap = 0, am = 0;
+  const acReal = [], acProy = [], acMeta = [];
+  FIN_MENSUAL.forEach(f => { ar += f.fact || 0; ap += f.proy || 0; am += f.meta || 0; acReal.push(+ar.toFixed(0)); acProy.push(+ap.toFixed(0)); acMeta.push(+am.toFixed(0)); });
+  const years = [...new Set(FIN_MENSUAL.map(f => f.y))];
+  const lastY = Math.max(...years);
+  const ofY = FIN_MENSUAL.filter(f => f.y === lastY);
+  const factY = ofY.reduce((s, f) => s + (f.fact || 0), 0);
+  const contY = ofY.reduce((s, f) => s + (f.contratos || 0), 0);
+  const last = [...FIN_MENSUAL].reverse().find(f => f.fact > 0) || {};
+  const dif = (last.fact || 0) - (last.meta || 0);
+  const saldoCartera = obras.reduce((s, o) => s + o.saldoUF, 0);
+  const kc = (l, v, s, c) => `<div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5"><p class="text-xs text-neutral-400 mb-1">${l}</p><p class="text-2xl font-extrabold ${c}">${v}</p><p class="text-[11px] text-neutral-500 mt-1">${s}</p></div>`;
+  document.getElementById('finKpis').innerHTML =
+    kc(`Facturación ${GANTT_MESES[(last.m || 1) - 1]} ${last.y || lastY}`, fmtUF(last.fact || 0), last.meta ? `Meta ${fmtUF(last.meta)} · ${dif >= 0 ? '+' : ''}${fmtUF(dif)}` : 'sin meta definida', last.meta ? (dif >= 0 ? 'text-emerald-400' : 'text-red-400') : 'text-neutral-100') +
+    kc(`Facturado ${lastY}`, fmtUF(factY), `acumulado del año`, 'text-emerald-400') +
+    kc(`Contratos ${lastY}`, fmtUF(contY), `nuevos ingresos`, 'text-sky-400') +
+    kc('Saldo Cartera', fmtUF(saldoCartera), `por facturar`, 'text-amber-400');
+
+  document.getElementById('finTabla').innerHTML = FIN_MENSUAL.map(f => {
+    const d = (f.fact || 0) - (f.meta || 0);
+    return `<tr class="hover:bg-neutral-800/30">
+      <td class="py-2 px-5 text-neutral-300">${GANTT_MESES[f.m - 1]} ${f.y}</td>
+      <td class="py-2 px-3 text-sky-400">${f.contratos ? fmtUF(f.contratos) : '—'}</td>
+      <td class="py-2 px-3 text-emerald-400">${f.fact ? fmtUF(f.fact) : '—'}</td>
+      <td class="py-2 px-3 text-neutral-400">${f.proy ? fmtUF(f.proy) : '—'}</td>
+      <td class="py-2 px-3 text-neutral-400">${f.meta ? fmtUF(f.meta) : '—'}</td>
+      <td class="py-2 px-3 font-semibold ${d >= 0 ? 'text-emerald-400' : 'text-red-400'}">${f.fact && f.meta ? (d >= 0 ? '+' : '') + fmtUF(d) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const axis = { ticks: { color: '#a3a3a3', font: { size: 10 } }, grid: { color: 'rgba(64,64,64,.3)' } };
+  const legend = { labels: { color: '#d4d4d4', font: { size: 11 }, boxWidth: 12 } };
+  Object.values(finCharts).forEach(c => c && c.destroy());
+  finCharts.curva = new Chart(cv, { type: 'line', data: { labels, datasets: [
+    { label: 'Real acum.', data: acReal, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.1)', fill: true, tension: .3, pointRadius: 0 },
+    { label: 'Proyectada acum.', data: acProy, borderColor: '#f59e0b', borderDash: [5, 4], tension: .3, pointRadius: 0 },
+    { label: 'Meta acum.', data: acMeta, borderColor: '#737373', borderDash: [2, 3], tension: .3, pointRadius: 0 },
+  ] }, options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend }, scales: { x: axis, y: axis } } });
+  finCharts.barras = new Chart(document.getElementById('finBarras'), { type: 'bar', data: { labels, datasets: [
+    { label: 'Contratos', data: FIN_MENSUAL.map(f => f.contratos), backgroundColor: '#0ea5e9' },
+    { label: 'Facturación', data: FIN_MENSUAL.map(f => f.fact), backgroundColor: '#10b981' },
+  ] }, options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend }, scales: { x: axis, y: axis } } });
+}
+
+/* ── Garantías (plantilla; el Excel no las registra) ── */
+let garantias = [
+  { tipo: 'Fiel Cumplimiento', mandante: 'Constructora Tacora SpA', proyecto: 'Edificio Jorge Cáceres 220', montoUF: 18, banco: 'Banco Estado', venc: '2026-07-10' },
+  { tipo: 'Anticipo', mandante: 'Inmobiliaria Las Condes S.A.', proyecto: 'Ciclovía Pdte. Riesco', montoUF: 29, banco: 'BCI', venc: '2026-08-31' },
+  { tipo: 'Correcta Ejecución', mandante: 'Municipalidad de La Reina', proyecto: 'Guay Guay – Sergio Correa', montoUF: 12, banco: 'Santander', venc: '2026-06-28' },
+  { tipo: 'Fiel Cumplimiento', mandante: 'Inmobiliaria Pie Andino', proyecto: 'Pie Andino 2', montoUF: 15, banco: 'Banco de Chile', venc: '2027-02-15' },
+];
+function renderGarantias() {
+  const els = ['garantiasList', 'finGarantiasList'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!els.length) return;
+  const hoy = new Date('2026-06-19');
+  const html = [...garantias].sort((a, b) => new Date(a.venc) - new Date(b.venc)).map((g, i) => {
+    const dias = Math.round((new Date(g.venc) - hoy) / 86400000);
+    let color = 'border-neutral-800', badge = 'bg-emerald-500/15 text-emerald-400', estado = `${dias} días`;
+    if (dias < 0) { color = 'border-red-500/50'; badge = 'bg-red-500/20 text-red-400'; estado = 'VENCIDA'; }
+    else if (dias <= 30) { color = 'border-amber-500/50'; badge = 'bg-amber-500/15 text-amber-400'; estado = `vence en ${dias} días`; }
+    return `<div class="flex flex-wrap items-center gap-3 bg-neutral-950 border ${color} rounded-lg px-4 py-3">
+      <div class="flex-1 min-w-[200px]">
+        <p class="text-sm font-semibold text-neutral-200">${g.tipo} · <span class="text-neutral-400 font-normal">${g.proyecto}</span></p>
+        <p class="text-[11px] text-neutral-500 mt-0.5">${g.mandante} · ${g.banco} · ${fmtUF(g.montoUF)} · vence ${g.venc}</p>
+      </div>
+      <span class="text-[10px] font-bold px-2 py-1 rounded-full ${badge}">${estado}</span>
+    </div>`;
+  }).join('') || '<p class="text-xs text-neutral-600">Sin boletas registradas.</p>';
+  els.forEach(el => el.innerHTML = html);
+}
+function nuevaGarantia() {
+  const tipo = prompt('Tipo de boleta (Fiel Cumplimiento, Anticipo, Correcta Ejecución):'); if (!tipo) return;
+  const proyecto = prompt('Proyecto:') || '—';
+  const montoUF = +prompt('Monto (UF):', '20') || 0;
+  const venc = prompt('Vencimiento (AAAA-MM-DD):', '2026-12-31') || '2026-12-31';
+  garantias.push({ tipo: tipo.trim(), mandante: '—', proyecto, montoUF, banco: '—', venc });
+  toast('Boleta de garantía registrada.', 'success');
+  renderGarantias();
+}
+
+/* ═══════════════════════ FINANZAS Y CONTABILIDAD (Claudio) ═══════════════════════ */
+
+const GASTO_CATS = ['Caja chica', 'Combustible', 'Peajes/Autopistas', 'Mantención vehículos', 'Pasajes y viáticos', 'Otros'];
+let gastos = [
+  { f: '18-06', cat: 'Combustible',          detalle: 'Bencina camioneta CJ-1042',     area: 'Terreno Las Condes', monto: 62000 },
+  { f: '17-06', cat: 'Peajes/Autopistas',    detalle: 'TAG autopista central',          area: 'Cuadrilla 2',        monto: 18500 },
+  { f: '15-06', cat: 'Pasajes y viáticos',   detalle: 'Pasajes + hotel Talca (2 días)', area: 'Semáforos CAM Talca',monto: 185000 },
+  { f: '14-06', cat: 'Caja chica',           detalle: 'Insumos varios de oficina',      area: 'Administración',     monto: 34000 },
+  { f: '12-06', cat: 'Mantención vehículos', detalle: 'Cambio de aceite y filtros',     area: 'Flota',              monto: 95000 },
+  { f: '10-06', cat: 'Combustible',          detalle: 'Bencina furgón CJ-2210',         area: 'Terreno',            monto: 58000 },
+  { f: '05-05', cat: 'Pasajes y viáticos',   detalle: 'Bus Santiago–Linares (cuadrilla)', area: 'MM Jumbo Linares', monto: 96000 },
+];
+let cierres = []; // períodos cerrados
+// Semilla de cobranza sobre la cartera real (el Excel no trae 'cobrado')
+obras.forEach((o, i) => {
+  const r = [1, 0.7, 0.85, 0.5, 0.6][i % 5];
+  o.cobradoUF = Math.round(o.facturadoUF * (o.fase === 'Terminado' ? 1 : r));
+  o.diasMora = (o.facturadoUF - o.cobradoUF) > 0 ? [18, 42, 77, 118, 95, 55][i % 6] : 0;
+});
+
+function moPctVal() { return (+document.getElementById('moPct')?.value || 25) / 100; }
+function materialesTotalCLP() { return movimientos.filter(m => m.tipo === 'despacho').reduce((s, m) => s + (m.qty * (inventario[m.stockKey]?.costo || 0)), 0); }
+function gastosTotalCLP() { return gastos.reduce((s, g) => s + g.monto, 0); }
+function porMes(arr, mm) { return arr.filter(x => x.f && x.f.split('-')[1] === mm); }
+let finChartsF = {};
+
+function finCard(l, v, s, c) { return `<div class="bg-neutral-900 border border-neutral-800 rounded-xl p-5"><p class="text-xs text-neutral-400 mb-1">${l}</p><p class="text-2xl font-extrabold ${c}">${v}</p><p class="text-[11px] text-neutral-500 mt-1">${s}</p></div>`; }
+
+function renderFinResumen() {
+  const k = document.getElementById('finResKpis');
+  if (!k) return;
+  const years = [...new Set(FIN_MENSUAL.map(f => f.y))]; const lastY = Math.max(...years);
+  const factY = FIN_MENSUAL.filter(f => f.y === lastY).reduce((s, f) => s + (f.fact || 0), 0);
+  const porCobrar = obras.reduce((s, o) => s + Math.max(0, o.facturadoUF - (o.cobradoUF || 0)), 0);
+  const matCLP = materialesTotalCLP(), gastoCLP = gastosTotalCLP();
+  const moCLP = obras.reduce((s, o) => s + o.contratoUF, 0) * UF * moPctVal();
+  const ventaCLP = obras.reduce((s, o) => s + o.contratoUF, 0) * UF;
+  const costoTotal = matCLP + gastoCLP + moCLP;
+  const margen = ventaCLP ? ((ventaCLP - costoTotal) / ventaCLP * 100) : 0;
+  k.innerHTML =
+    finCard(`Facturado ${lastY}`, fmtUF(factY), 'del año en curso', 'text-emerald-400') +
+    finCard('Por Cobrar', fmtUF(porCobrar), `≈ ${fmtCLP(porCobrar * UF)}`, 'text-amber-400') +
+    finCard('Costo Materiales', fmtCLP(matCLP), 'despachos de Bodega', 'text-sky-400') +
+    finCard('Gastos Operac.', fmtCLP(gastoCLP), `${gastos.length} registros`, 'text-orange-400') +
+    finCard('Margen Cartera', margen.toFixed(1) + '%', `costo total ${fmtCLP(costoTotal)}`, margen >= 0 ? 'text-emerald-400' : 'text-red-400');
+  // Gráficos solo cuando la vista está visible (evita canvas 0px)
+  if (typeof Chart === 'undefined' || document.getElementById('view-finanzas').classList.contains('hidden')) return;
+  const labels = FIN_MENSUAL.map(f => `${GANTT_MESES[f.m - 1]} ${String(f.y).slice(2)}`);
+  let ar = 0, am = 0; const acReal = [], acMeta = [];
+  FIN_MENSUAL.forEach(f => { ar += f.fact || 0; am += f.meta || 0; acReal.push(+ar.toFixed(0)); acMeta.push(+am.toFixed(0)); });
+  const axis = { ticks: { color: '#a3a3a3', font: { size: 10 } }, grid: { color: 'rgba(64,64,64,.3)' } };
+  const legend = { labels: { color: '#d4d4d4', font: { size: 11 }, boxWidth: 12 } };
+  Object.values(finChartsF).forEach(c => c && c.destroy());
+  finChartsF.curva = new Chart(document.getElementById('finResCurva'), { type: 'line', data: { labels, datasets: [
+    { label: 'Facturado acum.', data: acReal, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.1)', fill: true, tension: .3, pointRadius: 0 },
+    { label: 'Meta acum.', data: acMeta, borderColor: '#737373', borderDash: [4, 3], tension: .3, pointRadius: 0 },
+  ] }, options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend }, scales: { x: axis, y: axis } } });
+  finChartsF.costos = new Chart(document.getElementById('finResCostos'), { type: 'doughnut', data: {
+    labels: ['Materiales', 'Mano de obra', 'Gastos operac.'],
+    datasets: [{ data: [Math.round(matCLP), Math.round(moCLP), Math.round(gastoCLP)], backgroundColor: ['#0ea5e9', '#8b5cf6', '#f59e0b'], borderWidth: 0 }],
+  }, options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend } } });
+}
+
+function renderCobranza() {
+  const k = document.getElementById('finCobranzaKpis');
+  if (!k) return;
+  const fact = obras.reduce((s, o) => s + o.facturadoUF, 0);
+  const cob = obras.reduce((s, o) => s + (o.cobradoUF || 0), 0);
+  const porCobrar = obras.reduce((s, o) => s + Math.max(0, o.facturadoUF - (o.cobradoUF || 0)), 0);
+  const mora90 = obras.filter(o => o.diasMora > 90).reduce((s, o) => s + Math.max(0, o.facturadoUF - (o.cobradoUF || 0)), 0);
+  k.innerHTML =
+    finCard('Facturado', fmtUF(fact), 'acumulado cartera', 'text-neutral-100') +
+    finCard('Cobrado', fmtUF(cob), `${Math.round(cob / fact * 100) || 0}% recaudado`, 'text-emerald-400') +
+    finCard('Por Cobrar', fmtUF(porCobrar), `≈ ${fmtCLP(porCobrar * UF)}`, 'text-amber-400') +
+    finCard('Mora > 90 días', fmtUF(mora90), 'gestión urgente', mora90 ? 'text-red-400' : 'text-neutral-100');
+
+  document.getElementById('finFacturacionTable').innerHTML = [...obras].sort((a, b) => b.contratoUF - a.contratoUF).map(o => {
+    const pct = Math.round(o.facturadoUF / o.contratoUF * 100) || 0;
+    return `<tr class="hover:bg-neutral-800/30 cursor-pointer" onclick="openProyecto(${o.id})">
+      <td class="py-2 px-5 text-neutral-200">${o.nombre}</td>
+      <td class="py-2 px-3 text-neutral-300">${fmtUF(o.contratoUF)}</td>
+      <td class="py-2 px-3 text-emerald-400">${fmtUF(o.facturadoUF)}</td>
+      <td class="py-2 px-3"><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${pct >= 100 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-sky-500/15 text-sky-400'}">${pct}%</span></td>
+      <td class="py-2 px-3 text-amber-400">${fmtUF(o.saldoUF)}</td>
+    </tr>`;
+  }).join('');
+
+  const byMand = {};
+  obras.forEach(o => {
+    const m = o.mandante || '—';
+    byMand[m] = byMand[m] || { fact: 0, cob: 0, dias: 0 };
+    byMand[m].fact += o.facturadoUF; byMand[m].cob += (o.cobradoUF || 0); byMand[m].dias = Math.max(byMand[m].dias, o.diasMora || 0);
+  });
+  const rows = Object.entries(byMand).map(([m, v]) => ({ m, ...v, pc: Math.max(0, v.fact - v.cob) })).filter(r => r.pc > 0).sort((a, b) => b.pc - a.pc);
+  const canWrite = perm('finanzas') === 'write';
+  document.getElementById('finCobranzaTable').innerHTML = rows.map(r => {
+    let badge = 'bg-emerald-500/15 text-emerald-400', txt = 'al día';
+    if (r.dias > 90) { badge = 'bg-red-500/20 text-red-400'; txt = `+${r.dias} d`; }
+    else if (r.dias > 60) { badge = 'bg-orange-500/15 text-orange-400'; txt = `${r.dias} d`; }
+    else if (r.dias > 30) { badge = 'bg-amber-500/15 text-amber-400'; txt = `${r.dias} d`; }
+    else txt = `${r.dias} d`;
+    return `<tr class="hover:bg-neutral-800/30">
+      <td class="py-2 px-5 text-neutral-200">${r.m}</td>
+      <td class="py-2 px-3 text-neutral-300">${fmtUF(r.fact)}</td>
+      <td class="py-2 px-3 text-emerald-400">${fmtUF(r.cob)}</td>
+      <td class="py-2 px-3 text-amber-400 font-semibold">${fmtUF(r.pc)}</td>
+      <td class="py-2 px-3"><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badge}">${txt}</span></td>
+      <td class="py-2 px-3 text-right">${canWrite ? `<button onclick="registrarCobro('${r.m.replace(/'/g, '')}')" class="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded">Registrar cobro</button>` : ''}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="py-3 px-5 text-xs text-neutral-600">Sin cuentas por cobrar.</td></tr>';
+}
+
+function renderGastos() {
+  const cats = document.getElementById('finGastosCats');
+  if (!cats) return;
+  const tot = {}; GASTO_CATS.forEach(c => tot[c] = 0);
+  gastos.forEach(g => tot[g.cat] = (tot[g.cat] || 0) + g.monto);
+  const icon = { 'Caja chica': 'M2 7h20v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z', 'Combustible': 'M3 22V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v18', 'Peajes/Autopistas': 'M4 19h16', 'Mantención vehículos': 'M14 7h-4', 'Pasajes y viáticos': 'M2 12h20', 'Otros': 'M12 2v20' };
+  cats.innerHTML = GASTO_CATS.map(c => `<div class="bg-neutral-900 border border-neutral-800 rounded-xl p-3">
+    <p class="text-[10px] uppercase tracking-wide text-neutral-500 leading-tight">${c}</p>
+    <p class="text-base font-extrabold text-neutral-100 mt-1">${fmtCLP(tot[c])}</p></div>`).join('');
+  const catColor = { 'Caja chica': 'text-neutral-300', 'Combustible': 'text-orange-400', 'Peajes/Autopistas': 'text-sky-400', 'Mantención vehículos': 'text-violet-400', 'Pasajes y viáticos': 'text-amber-400', 'Otros': 'text-neutral-400' };
+  document.getElementById('finGastosTable').innerHTML = gastos.map(g => `<tr class="hover:bg-neutral-800/30">
+    <td class="py-2 px-5 font-mono text-neutral-500 text-xs">${g.f}</td>
+    <td class="py-2 px-3"><span class="text-xs font-semibold ${catColor[g.cat] || 'text-neutral-300'}">${g.cat}</span></td>
+    <td class="py-2 px-3 text-neutral-300">${g.detalle}</td>
+    <td class="py-2 px-3 text-neutral-500">${g.area}</td>
+    <td class="py-2 px-3 text-right font-semibold text-neutral-100">${fmtCLP(g.monto)}</td>
+  </tr>`).join('') || '<tr><td colspan="5" class="py-3 px-5 text-xs text-neutral-600">Sin gastos registrados.</td></tr>';
+}
+
+function renderCostos() {
+  const k = document.getElementById('finCostosKpis');
+  if (!k) return;
+  const moPct = moPctVal();
+  const matCLP = materialesTotalCLP(), gastoCLP = gastosTotalCLP();
+  const ventaCLP = obras.reduce((s, o) => s + o.contratoUF, 0) * UF;
+  const moCLP = ventaCLP * moPct;
+  const costo = matCLP + gastoCLP + moCLP;
+  const margen = ventaCLP ? ((ventaCLP - costo) / ventaCLP * 100) : 0;
+  k.innerHTML =
+    finCard('Materiales', fmtCLP(matCLP), 'despachos Bodega', 'text-sky-400') +
+    finCard('Mano de Obra', fmtCLP(moCLP), `${(moPct * 100).toFixed(0)}% del contrato`, 'text-violet-400') +
+    finCard('Gastos Operac.', fmtCLP(gastoCLP), 'caja chica, flota…', 'text-orange-400') +
+    finCard('Costo Total', fmtCLP(costo), `venta ${fmtCLP(ventaCLP)}`, 'text-red-400') +
+    finCard('Margen', margen.toFixed(1) + '%', fmtCLP(ventaCLP - costo), margen >= 0 ? 'text-emerald-400' : 'text-red-400');
+  // Materiales por proyecto (match por área de despacho)
+  const matProj = {};
+  movimientos.filter(m => m.tipo === 'despacho').forEach(m => {
+    const o = obras.find(o => m.detalle.toLowerCase().includes((o.cruce || '').toLowerCase().slice(0, 8)) || m.detalle.toLowerCase().includes((o.nombre || '').toLowerCase().slice(0, 8)));
+    if (o) matProj[o.id] = (matProj[o.id] || 0) + m.qty * (inventario[m.stockKey]?.costo || 0);
+  });
+  document.getElementById('finCostosTable').innerHTML = [...obras].sort((a, b) => b.contratoUF - a.contratoUF).map(o => {
+    const cVenta = o.contratoUF * UF, mo = cVenta * moPct, mat = matProj[o.id] || 0;
+    const marg = cVenta - mo - mat, p = cVenta ? (marg / cVenta * 100) : 0;
+    return `<tr class="hover:bg-neutral-800/30">
+      <td class="py-2 px-5 text-neutral-200">${o.nombre}</td>
+      <td class="py-2 px-3 text-neutral-300">${fmtCLP(cVenta)}</td>
+      <td class="py-2 px-3 text-sky-400">${mat ? fmtCLP(mat) : '—'}</td>
+      <td class="py-2 px-3 text-violet-400">${fmtCLP(mo)}</td>
+      <td class="py-2 px-3 font-semibold ${marg >= 0 ? 'text-emerald-400' : 'text-red-400'}">${fmtCLP(marg)}</td>
+      <td class="py-2 px-3 ${p >= 0 ? 'text-emerald-400' : 'text-red-400'}">${p.toFixed(0)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+const CIERRE_MESES = [['2026-04', 'Abril 2026'], ['2026-05', 'Mayo 2026'], ['2026-06', 'Junio 2026']];
+function renderCierre() {
+  const sel = document.getElementById('cierreMes');
+  if (!sel) return;
+  if (!sel.options.length) { sel.innerHTML = CIERRE_MESES.map(([v, l]) => `<option value="${v}">${l}</option>`).join(''); sel.value = '2026-05'; }
+  const periodo = sel.value || '2026-05';
+  const [, mm] = periodo.split('-');
+  const fm = FIN_MENSUAL.find(f => f.y === +periodo.split('-')[0] && f.m === +mm);
+  const factCLP = (fm?.fact || 0) * UF;
+  const matCLP = porMes(movimientos.filter(m => m.tipo === 'despacho'), mm).reduce((s, m) => s + m.qty * (inventario[m.stockKey]?.costo || 0), 0);
+  const gastoCLP = porMes(gastos, mm).reduce((s, g) => s + g.monto, 0);
+  const moCLP = factCLP * moPctVal();
+  const costo = matCLP + moCLP + gastoCLP;
+  const resultado = factCLP - costo;
+  const cerrado = cierres.find(c => c.periodo === periodo);
+  const canWrite = perm('finanzas') === 'write';
+  const fila = (l, v, c) => `<div class="flex justify-between py-1.5 text-sm border-b border-neutral-800/60"><span class="text-neutral-400">${l}</span><span class="font-semibold ${c || 'text-neutral-100'}">${v}</span></div>`;
+  document.getElementById('finCierrePanel').innerHTML =
+    fila('Facturación del mes', fmtCLP(factCLP), 'text-emerald-400') +
+    fila('(−) Costo materiales', fmtCLP(matCLP), 'text-sky-400') +
+    fila('(−) Mano de obra', fmtCLP(moCLP), 'text-violet-400') +
+    fila('(−) Gastos operacionales', fmtCLP(gastoCLP), 'text-orange-400') +
+    `<div class="flex justify-between py-2.5 mt-1 text-base"><span class="font-bold text-neutral-200">Resultado del mes</span><span class="font-extrabold ${resultado >= 0 ? 'text-emerald-400' : 'text-red-400'}">${fmtCLP(resultado)}</span></div>` +
+    (cerrado
+      ? `<div class="mt-3 flex items-center gap-2 bg-neutral-800/60 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-neutral-400"><svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Período cerrado el ${cerrado.fecha}. Bloqueado para edición.</div>`
+      : canWrite
+        ? `<button onclick="cerrarPeriodo('${periodo}')" class="mt-3 w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold py-2.5 rounded-lg">Cerrar período</button>`
+        : '<p class="mt-3 text-[11px] text-neutral-500 italic">Solo Contabilidad puede cerrar el período.</p>');
+  document.getElementById('finCierreHist').innerHTML = cierres.length
+    ? [...cierres].reverse().map(c => `<div class="flex items-center justify-between bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5">
+        <div><p class="text-sm font-semibold text-neutral-200">${CIERRE_MESES.find(m => m[0] === c.periodo)?.[1] || c.periodo}</p><p class="text-[11px] text-neutral-500">cerrado ${c.fecha}</p></div>
+        <span class="text-sm font-bold ${c.resultado >= 0 ? 'text-emerald-400' : 'text-red-400'}">${fmtCLP(c.resultado)}</span></div>`).join('')
+    : '<p class="text-xs text-neutral-600">Aún no hay períodos cerrados.</p>';
+}
+
+function registrarGasto() {
+  const ci = prompt('Categoría del gasto:\n' + GASTO_CATS.map((c, i) => `${i + 1}. ${c}`).join('\n') + '\n\nNº:');
+  const idx = parseInt(ci) - 1; if (isNaN(idx) || !GASTO_CATS[idx]) return;
+  const detalle = prompt('Detalle:'); if (!detalle) return;
+  const area = prompt('Proyecto / área:', '') || '—';
+  const monto = +prompt('Monto (CLP):', '50000') || 0; if (monto <= 0) return;
+  gastos.unshift({ f: hoyMD(), cat: GASTO_CATS[idx], detalle: detalle.trim(), area: area.trim(), monto });
+  toast(`Gasto registrado: ${GASTO_CATS[idx]} ${fmtCLP(monto)}.`, 'success');
+  renderGastos(); renderCostos(); renderFinResumen(); renderCierre();
+}
+function registrarCobro(mandante) {
+  const objetivo = obras.filter(o => (o.mandante || '—') === mandante && (o.facturadoUF - (o.cobradoUF || 0)) > 0);
+  const pc = objetivo.reduce((s, o) => s + (o.facturadoUF - (o.cobradoUF || 0)), 0);
+  const monto = +prompt(`Registrar cobro de ${mandante}\nPor cobrar: ${fmtUF(pc)}\n\nMonto cobrado (UF):`, Math.round(pc)); if (!monto || monto <= 0) return;
+  let resta = monto;
+  for (const o of objetivo) { const d = Math.min(resta, o.facturadoUF - (o.cobradoUF || 0)); o.cobradoUF = (o.cobradoUF || 0) + d; resta -= d; if (resta <= 0) break; }
+  objetivo.forEach(o => { if (o.facturadoUF - (o.cobradoUF || 0) <= 0) o.diasMora = 0; });
+  toast(`Cobro registrado: ${fmtUF(monto)} de ${mandante}.`, 'success');
+  renderCobranza(); renderFinResumen();
+}
+function cerrarPeriodo(periodo) {
+  if (cierres.find(c => c.periodo === periodo)) return;
+  const [, mm] = periodo.split('-');
+  const fm = FIN_MENSUAL.find(f => f.y === +periodo.split('-')[0] && f.m === +mm);
+  const factCLP = (fm?.fact || 0) * UF;
+  const matCLP = porMes(movimientos.filter(m => m.tipo === 'despacho'), mm).reduce((s, m) => s + m.qty * (inventario[m.stockKey]?.costo || 0), 0);
+  const gastoCLP = porMes(gastos, mm).reduce((s, g) => s + g.monto, 0);
+  const resultado = factCLP - (matCLP + factCLP * moPctVal() + gastoCLP);
+  cierres.push({ periodo, fecha: hoyMD(), resultado });
+  toast(`Período ${periodo} cerrado. Resultado ${fmtCLP(resultado)}.`, 'success');
+  renderCierre();
+}
+
+function renderFinanzas() {
+  if (!document.getElementById('finResKpis')) return;
+  renderFinResumen(); renderCobranza(); renderGastos(); renderCostos(); renderCierre(); renderGarantias();
+}
+
+/* ═══════════════════════ TRANSFERENCIA SEGURA ═══════════════════════ */
+
+const OBRA_OBJETIVO = 'Modificación Ciclovía Presidente Riesco';
+
+function openTransferModal() {
+  document.getElementById('transferModal').classList.remove('hidden');
+  document.getElementById('transferInput').value = '';
+  validateTransfer();
+  document.getElementById('transferInput').focus();
+}
+function closeTransferModal() { document.getElementById('transferModal').classList.add('hidden'); }
+function validateTransfer() {
+  const val = document.getElementById('transferInput').value;
+  const btn = document.getElementById('transferConfirmBtn');
+  const hint = document.getElementById('transferHint');
+  const ok = val === OBRA_OBJETIVO;
+  btn.disabled = !ok;
+  btn.classList.toggle('opacity-40', !ok);
+  btn.classList.toggle('cursor-not-allowed', !ok);
+  btn.classList.toggle('hover:bg-red-500', ok);
+  hint.textContent = val.length === 0 ? '' : ok ? '✓ Nombre verificado. Puedes transferir.' : '✗ El nombre no coincide exactamente.';
+  hint.className = `text-[11px] h-4 mb-4 ${ok ? 'text-emerald-400' : 'text-red-400'}`;
+}
+function confirmTransfer() {
+  closeTransferModal();
+  toast(`Obra "${OBRA_OBJETIVO}" transferida. Se notificó a Gerencia.`, 'success');
+}
+
+/* ═══════════════════════ BODEGA ═══════════════════════ */
+
+const PRECIOS = { poste: 485000, zanjaMetro: 38500, cruceBase: 12800000 };
+
+function calcularCubicacion() {
+  const postes = +document.getElementById('cubPostes').value || 0;
+  const zanjas = +document.getElementById('cubZanjas').value || 0;
+  const cruces = +document.getElementById('cubCruces').value || 0;
+  const cPostes = postes * PRECIOS.poste;
+  const cZanjas = zanjas * PRECIOS.zanjaMetro;
+  const cCruces = cruces * PRECIOS.cruceBase;
+  const subtotal = cPostes + cZanjas + cCruces;
+  const iva = Math.round(subtotal * 0.19);
+  const fmt = n => '$' + n.toLocaleString('es-CL');
+  const r = document.getElementById('cubResultado');
+  r.classList.remove('hidden');
+  r.innerHTML = `
+    <p class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Presupuesto Referencial Instantáneo</p>
+    <div class="text-sm space-y-1.5 text-neutral-300">
+      <div class="flex justify-between"><span>${postes} postes galvanizados</span><span class="font-mono">${fmt(cPostes)}</span></div>
+      <div class="flex justify-between"><span>${zanjas} m de zanja + canalización</span><span class="font-mono">${fmt(cZanjas)}</span></div>
+      <div class="flex justify-between"><span>${cruces} cruce(s): controlador + lámparas + gateway</span><span class="font-mono">${fmt(cCruces)}</span></div>
+      <div class="flex justify-between border-t border-neutral-800 pt-2"><span>Subtotal</span><span class="font-mono">${fmt(subtotal)}</span></div>
+      <div class="flex justify-between text-neutral-400"><span>IVA 19%</span><span class="font-mono">${fmt(iva)}</span></div>
+      <div class="flex justify-between text-lg font-extrabold text-emerald-400 border-t border-neutral-800 pt-2"><span>TOTAL</span><span class="font-mono">${fmt(subtotal + iva)}</span></div>
+    </div>`;
+  toast('Cubicación calculada.', 'success');
+}
+
+function hoyMD() { const d = new Date(); return String(d.getDate()).padStart(2, '0') + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+
+/* ── KPI compacto de stock (siempre visible, ocupa poco) ── */
+function renderStockKpi() {
+  const el = document.getElementById('stockKpi');
+  if (!el) return;
+  const items = Object.values(inventario);
+  const val = items.reduce((s, i) => s + i.qty * i.costo, 0);
+  const low = items.filter(i => i.qty < i.min);
+  const chip = (cls, html) => `<span class="inline-flex items-center gap-2 border rounded-lg px-3 py-2 text-xs ${cls}">${html}</span>`;
+  el.innerHTML =
+    chip('bg-neutral-900 border-neutral-800', `<span class="text-neutral-500">Valorización stock</span><span class="font-bold text-neutral-100">${fmtCLP(val)}</span>`) +
+    chip(`${low.length ? 'bg-red-500/10 border-red-500/30' : 'bg-neutral-900 border-neutral-800'}`, `<span class="text-neutral-500">Bajo mínimo</span><span class="font-bold ${low.length ? 'text-red-400' : 'text-emerald-400'}">${low.length}</span>`) +
+    low.map(i => chip('bg-red-500/10 border-red-500/30 text-red-300 pulse-red', `${i.nombre} <span class="font-bold">${i.qty}/${i.min} ${i.unit}</span>`)).join('');
+}
+
+/* ── Tabla de inventario ── */
+function renderInventario() {
+  const tb = document.getElementById('inventarioTable');
+  if (!tb) return;
+  tb.innerHTML = Object.values(inventario).map(i => {
+    const low = i.qty < i.min;
+    const estado = low ? '<span class="text-[10px] font-bold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">BAJO MÍNIMO</span>'
+      : '<span class="text-[10px] font-bold bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full">OK</span>';
+    return `<tr class="${low ? 'bg-red-500/5' : 'hover:bg-neutral-800/30'}">
+      <td class="py-2.5 pr-4 text-neutral-200 font-medium">${i.nombre}</td>
+      <td class="py-2.5 pr-4 font-bold ${low ? 'text-red-400' : 'text-neutral-100'}">${i.qty} ${i.unit}</td>
+      <td class="py-2.5 pr-4 text-neutral-500">${i.min}</td>
+      <td class="py-2.5 pr-4">${estado}</td>
+      <td class="py-2.5 pr-4 text-right text-neutral-400">${fmtCLP(i.costo)}</td>
+      <td class="py-2.5 text-right text-neutral-200 font-semibold">${fmtCLP(i.qty * i.costo)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Movimientos (kárdex simplificado) ── */
+function renderMovimientos() {
+  const el = document.getElementById('movimientosList');
+  if (!el) return;
+  el.innerHTML = movimientos.slice(0, 12).map(m => {
+    const ing = m.tipo === 'ingreso';
+    return `<div class="flex items-center gap-3 bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5">
+      <span class="text-[11px] font-mono text-neutral-500 w-12 shrink-0">${m.f}</span>
+      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${ing ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">${ing ? 'INGRESO' : 'DESPACHO'}</span>
+      <span class="text-sm text-neutral-300 flex-1 min-w-0 truncate">${m.detalle}</span>
+      <span class="text-sm font-bold ${ing ? 'text-emerald-400' : 'text-amber-400'} shrink-0">${ing ? '+' : '−'}${m.qty} ${inventario[m.stockKey]?.unit || ''}</span>
+    </div>`;
+  }).join('') || '<p class="text-[11px] text-neutral-600 py-2">Sin movimientos.</p>';
+}
+
+function registrarIngreso() {
+  const keys = Object.keys(inventario);
+  const sel = prompt('Registrar ingreso de proveedor — elige material:\n' + keys.map((k, i) => `${i + 1}. ${inventario[k].nombre} (stock ${inventario[k].qty} ${inventario[k].unit})`).join('\n') + '\n\nNº de material:');
+  const idx = parseInt(sel) - 1;
+  if (isNaN(idx) || !keys[idx]) return;
+  const k = keys[idx];
+  const qty = +prompt(`Cantidad a ingresar de ${inventario[k].nombre} (${inventario[k].unit}):`, '10');
+  if (!qty || qty <= 0) return;
+  inventario[k].qty += qty;
+  movimientos.unshift({ f: hoyMD(), tipo: 'ingreso', stockKey: k, qty, detalle: `Ingreso proveedor · ${inventario[k].nombre}` });
+  toast(`Ingreso registrado: +${qty} ${inventario[k].unit} de ${inventario[k].nombre}.`, 'success');
+  renderStockKpi(); renderInventario(); renderMovimientos();
+}
+
+// Aplica el descuento de stock al despachar
+function aplicarDespacho(p) {
+  const inv = inventario[p.stockKey];
+  if (inv) {
+    if (inv.qty < p.qty) toast(`Stock insuficiente de ${inv.nombre}: queda en 0.`, 'error');
+    inv.qty = Math.max(0, inv.qty - (p.qty || 0));
+    movimientos.unshift({ f: hoyMD(), tipo: 'despacho', stockKey: p.stockKey, qty: p.qty, detalle: `Despacho · ${p.area} (#${p.id})` });
+  }
+  p.estado = 'despachado';
+}
+
+function pedidoCard(p, opts) {
+  const motivo = p.monto > UMBRAL_CRITICO && p.critico ? 'monto + hardware'
+    : p.monto > UMBRAL_CRITICO ? `sobre umbral (${fmtCLP(UMBRAL_CRITICO)})`
+    : p.critico ? 'hardware mayor' : '';
+  return `
+    <div class="flex flex-wrap items-center gap-3 bg-neutral-950 border ${opts.border} rounded-lg px-4 py-3 ${opts.dim ? 'opacity-60' : ''}">
+      <div class="flex-1 min-w-[200px]">
+        <p class="text-sm font-semibold text-neutral-200">${p.item} <span class="text-[11px] text-neutral-500">(${p.cant})</span></p>
+        <p class="text-[11px] text-neutral-500 mt-0.5">Solicita: ${p.solicitante} · ${p.area} · #${p.id} · <span class="text-neutral-400">${fmtCLP(p.monto)}</span>${motivo ? ` · <span class="text-red-400">${motivo}</span>` : ''}</p>
+      </div>
+      ${opts.badge}
+      <div class="flex gap-2">${opts.actions || ''}</div>
+    </div>`;
+}
+
+function renderBodega() {
+  // 1) Solicitudes (normales pendientes)
+  const sol = pedidos.filter(p => p.estado === 'solicitud');
+  document.getElementById('solicitudesList').innerHTML = sol.map(p => {
+    const badge = '<span class="text-[10px] font-bold bg-sky-500/15 text-sky-400 px-2 py-1 rounded-full">PENDIENTE</span>';
+    let actions;
+    if (perm('bodegaSolic') === 'dispatch')
+      actions = `<button onclick="despacharSolicitud(${p.id})" class="text-xs font-bold bg-amber-500 hover:bg-amber-400 text-neutral-950 px-3 py-1.5 rounded-lg">Despachar</button>`;
+    else
+      actions = `<span class="text-[11px] text-neutral-500 italic">Esperando a Bodega (Juan)…</span>`;
+    return pedidoCard(p, { border: 'border-neutral-700', badge, actions });
+  }).join('') || '<p class="text-[11px] text-neutral-600 py-2">Sin solicitudes pendientes.</p>';
+
+  // 2) Solicitudes Críticas (esperando aprobación)
+  const critEl = document.getElementById('criticasList');
+  if (critEl) {
+    const crit = pedidos.filter(p => p.estado === 'critica');
+    critEl.innerHTML = crit.map(p => {
+      const badge = '<span class="text-[10px] font-bold bg-red-500/20 text-red-400 px-2 py-1 rounded-full">REQUIERE APROBACIÓN</span>';
+      let actions;
+      if (perm('bodegaCritic') === 'approve')
+        actions = `<button onclick="aprobarCritica(${p.id})" class="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg">Aprobar</button>
+                   <button onclick="rechazarCritica(${p.id})" class="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-1.5 rounded-lg">Rechazar</button>`;
+      else if (perm('bodegaCritic') === 'readblock')
+        actions = `<span class="text-[11px] text-red-400/80 italic flex items-center gap-1"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Bloqueado — falta aprobación</span>`;
+      else
+        actions = `<span class="text-[11px] text-neutral-500 italic">Esperando aprobación de Gerencia/Jefatura…</span>`;
+      return pedidoCard(p, { border: 'border-red-500/40', badge, actions });
+    }).join('') || '<p class="text-[11px] text-neutral-600 py-2">Sin solicitudes críticas.</p>';
+  }
+
+  // 3) Cola de pedidos (aprobadas listas + despachadas)
+  const colaEl = document.getElementById('colaList');
+  if (colaEl) {
+    const cola = pedidos.filter(p => p.estado === 'aprobada' || p.estado === 'despachado');
+    colaEl.innerHTML = cola.map(p => {
+      if (p.estado === 'despachado')
+        return pedidoCard(p, { border: 'border-neutral-800', dim: true, badge: '<span class="text-[10px] font-bold bg-emerald-500/15 text-emerald-400 px-2 py-1 rounded-full">✓ DESPACHADO</span>' });
+      const badge = '<span class="text-[10px] font-bold bg-amber-500/15 text-amber-400 px-2 py-1 rounded-full">✓ APROBADO — LISTO</span>';
+      let actions;
+      if (perm('bodegaCola') === 'write')
+        actions = `<button onclick="despacharCola(${p.id})" class="text-xs font-bold bg-amber-500 hover:bg-amber-400 text-neutral-950 px-3 py-1.5 rounded-lg">Despachar y generar guía</button>`;
+      else
+        actions = `<span class="text-[11px] text-neutral-500 italic">Listo para Bodega (Juan)…</span>`;
+      return pedidoCard(p, { border: 'border-amber-500/40', badge, actions });
+    }).join('') || '<p class="text-[11px] text-neutral-600 py-2">Cola vacía.</p>';
+  }
+
+  // Badge del sidebar = críticas pendientes de aprobación
+  const blocked = pedidos.filter(p => p.estado === 'critica').length;
+  const nav = document.getElementById('navBodegaBadge');
+  nav.textContent = blocked;
+  nav.classList.toggle('hidden', blocked === 0);
+  const pend = pedidos.filter(p => p.estado === 'solicitud' || p.estado === 'critica').length;
+  const sb = document.getElementById('solBadge');
+  if (sb) sb.innerHTML = pend ? `<span class="ml-1 text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 rounded-full">${pend}</span>` : '';
+  const ul = document.getElementById('umbralLabel');
+  if (ul) ul.textContent = UMBRAL_CRITICO.toLocaleString('es-CL');
+}
+
+function despacharSolicitud(id) {
+  const p = pedidos.find(x => x.id === id);
+  aplicarDespacho(p);
+  toast(`Solicitud #${id} despachada. Guía generada y stock descontado.`, 'success');
+  renderStockKpi(); renderInventario(); renderMovimientos(); renderBodega();
+}
+function aprobarCritica(id) {
+  const p = pedidos.find(x => x.id === id);
+  p.estado = 'aprobada';
+  toast(`Crítica #${id} aprobada por ${ROLES[currentRole].name}. Pasa a la Cola de pedidos para que Juan despache.`, 'success');
+  renderBodega();
+}
+function rechazarCritica(id) {
+  pedidos = pedidos.filter(x => x.id !== id);
+  toast(`Solicitud crítica #${id} rechazada y eliminada.`, 'error');
+  renderBodega();
+}
+function despacharCola(id) {
+  const p = pedidos.find(x => x.id === id);
+  aplicarDespacho(p);
+  toast(`Pedido #${id} despachado. Guía generada y stock descontado.`, 'success');
+  renderStockKpi(); renderInventario(); renderMovimientos(); renderBodega();
+}
+let pedidoSeq = 107;
+function nuevoPedido() {
+  const item = prompt('¿Qué material necesitas solicitar?');
+  if (!item || !item.trim()) return;
+  const qty = +prompt('Cantidad (número):', '1') || 1;
+  const area = prompt('Proyecto / destino:', '') || ROLES[currentRole].label;
+  // Enlaza con el inventario por coincidencia de nombre (descuenta al despachar)
+  const stockKey = Object.keys(inventario).find(k => {
+    const n = inventario[k].nombre.toLowerCase(), q = item.trim().toLowerCase();
+    return n.includes(q) || q.includes(n.split(' ')[0]);
+  }) || null;
+  const unit = stockKey ? inventario[stockKey].unit : 'un';
+  const sugerido = stockKey ? inventario[stockKey].costo * qty : 0;
+  const monto = +prompt(`Monto neto estimado en CLP${stockKey ? ` (sugerido ${fmtCLP(sugerido)})` : ''}\n(sobre ${fmtCLP(UMBRAL_CRITICO)} se vuelve Solicitud Crítica):`, sugerido || 50000) || 0;
+  const hardware = /controlador|gateway|teltonika|auter|router|ups|otu/i.test(item);
+  const critico = hardware || monto > UMBRAL_CRITICO;
+  pedidos.unshift({
+    id: pedidoSeq++,
+    stockKey, item: item.trim(), qty, cant: `${qty} ${unit}`, monto,
+    solicitante: ROLES[currentRole].name.split(' ')[0], area: area.trim(),
+    critico, estado: critico ? 'critica' : 'solicitud',
+  });
+  toast(critico
+    ? `Solicitud CRÍTICA creada (${monto > UMBRAL_CRITICO ? 'sobre umbral' : 'hardware mayor'}): requiere aprobación antes del despacho.`
+    : 'Solicitud creada: entra al flujo normal, Bodega la despacha.', critico ? 'error' : 'success');
+  renderBodega();
+}
+
+/* ═══════════════════════ TALLER ═══════════════════════ */
+
+const FASE_TALLER_COLORS = {
+  'Por Armar': 'text-neutral-400 border-neutral-700', 'Cableado': 'text-amber-400 border-amber-500/40',
+  'Conexión Relés': 'text-orange-400 border-orange-500/40', 'Pruebas Banco': 'text-violet-400 border-violet-500/40',
+  'Listo': 'text-emerald-400 border-emerald-500/40',
+};
+
+function renderKanbanTaller() {
+  const cont = document.getElementById('kanbanTaller');
+  cont.innerHTML = FASES_TALLER.map(fase => {
+    const cards = tableros.filter(t => t.fase === fase);
+    const cols = FASE_TALLER_COLORS[fase].split(' ');
+    return `
+    <div class="kanban-col bg-neutral-900 border border-neutral-800 rounded-xl p-3 flex-1">
+      <div class="flex items-center justify-between px-1 mb-3">
+        <span class="text-xs font-bold uppercase tracking-wide ${cols[0]}">${fase}</span>
+        <span class="text-[10px] bg-neutral-800 text-neutral-400 px-1.5 py-0.5 rounded-full font-bold">${cards.length}</span>
+      </div>
+      <div class="space-y-2">
+        ${cards.map(t => {
+          const enPruebas = fase === 'Pruebas Banco';
+          return `
+          <div class="bg-neutral-950 border ${cols[1]} rounded-lg p-3">
+            <p class="text-sm font-semibold text-neutral-100">${t.nombre}</p>
+            <p class="text-[11px] text-neutral-500 mt-1">Técnico: ${t.tecnico}</p>
+            ${enPruebas ? `
+              <div class="mt-3 bg-violet-500/10 border border-violet-500/30 rounded-lg p-2.5 space-y-2">
+                <button onclick="descargarFW('${t.fw || ''}')" class="w-full text-[11px] font-bold bg-violet-600 hover:bg-violet-500 text-white px-2 py-1.5 rounded-md flex items-center justify-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 inline -mt-0.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Descargar Firmware (Febe)
+                </button>
+                <p class="text-[10px] text-neutral-500 font-mono truncate">${t.fw || 'Sin archivo cargado'}</p>
+                <div class="flex gap-1.5">
+                  <button onclick="pruebaOK(${t.id})" class="flex-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-md">✓ Prueba OK</button>
+                  <button onclick="pruebaFail(${t.id})" class="flex-1 text-[11px] font-bold bg-red-600 hover:bg-red-500 text-white py-1.5 rounded-md">✗ Rechazar</button>
+                </div>
+              </div>` : `
+              <div class="flex justify-end gap-1 mt-2">
+                ${FASES_TALLER.indexOf(fase) > 0 ? `<button onclick="moveTablero(${t.id},-1)" class="text-[11px] bg-neutral-800 hover:bg-neutral-700 rounded px-1.5 py-0.5">◀</button>` : ''}
+                ${FASES_TALLER.indexOf(fase) < FASES_TALLER.length - 1 ? `<button onclick="moveTablero(${t.id},1)" class="text-[11px] bg-neutral-800 hover:bg-neutral-700 rounded px-1.5 py-0.5">▶</button>` : ''}
+              </div>`}
+          </div>`;
+        }).join('') || '<p class="text-[11px] text-neutral-600 px-1 py-3 text-center">Vacío</p>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function moveTablero(id, dir) {
+  const t = tableros.find(x => x.id === id);
+  const i = FASES_TALLER.indexOf(t.fase) + dir;
+  if (i >= 0 && i < FASES_TALLER.length) {
+    t.fase = FASES_TALLER[i];
+    if (t.fase === 'Pruebas Banco' && !t.fw) {
+      const fw = firmwares.find(f => f.estado !== 'Rechazado');
+      t.fw = fw ? fw.archivo : null;
+    }
+    toast(`"${t.nombre}" movido a ${t.fase}.`, 'success');
+    renderKanbanTaller();
+  }
+}
+function descargarFW(fw) {
+  if (!fw) { toast('Febe aún no sube firmware para este tablero.', 'error'); return; }
+  toast(`Descargando ${fw}… (simulado)`, 'info');
+}
+function pruebaOK(id) {
+  const t = tableros.find(x => x.id === id);
+  t.fase = 'Listo';
+  const fw = firmwares.find(f => f.archivo === t.fw);
+  if (fw) { fw.estado = 'Aprobado'; fw.feedback = `Prueba de banco OK (${ROLES[currentRole].name}, 12 Jun).`; }
+  toast(`"${t.nombre}": prueba de banco APROBADA. Febe fue notificada. ✓`, 'success');
+  renderKanbanTaller(); renderFirmwares();
+}
+function pruebaFail(id) {
+  const t = tableros.find(x => x.id === id);
+  t.fase = 'Conexión Relés';
+  const fw = firmwares.find(f => f.archivo === t.fw);
+  if (fw) { fw.estado = 'Rechazado'; fw.feedback = `Rechazado en banco por ${ROLES[currentRole].name}: falla en secuencia de fases.`; }
+  toast(`"${t.nombre}": prueba RECHAZADA. Vuelve a Conexión Relés y Febe recibe el feedback.`, 'error');
+  renderKanbanTaller(); renderFirmwares();
+}
+
+/* ═══════════════════════ CALENDARIO (Junio 2026) ═══════════════════════ */
+
+function renderCalendar() {
+  // Junio 2026: el día 1 es lunes, 30 días → grilla limpia de 5 semanas
+  const grid = document.getElementById('calendarGrid');
+  let html = '';
+  for (let d = 1; d <= 30; d++) {
+    const tasks = calendarTasks[d] || [];
+    const isToday = d === 12;
+    const weekend = (d % 7 === 6) || (d % 7 === 0);
+    const canCheck = currentRole === 'tecnico' || currentRole === 'firmware' || currentRole === 'jefatura';
+    html += `
+    <div onclick="clickDay(${d})" class="min-h-[88px] border-b border-r border-neutral-800/70 p-2 ${weekend ? 'bg-neutral-950/50' : ''} ${isToday ? 'bg-amber-500/5' : ''} ${currentRole === 'jefatura' ? 'cursor-pointer hover:bg-neutral-800/40' : ''}">
+      <span class="text-xs font-bold ${isToday ? 'bg-amber-500 text-neutral-950 rounded-full px-1.5 py-0.5' : weekend ? 'text-neutral-600' : 'text-neutral-400'}">${d}</span>
+      <div class="mt-1.5 space-y-1">
+        ${tasks.map((task, i) => `
+          <p onclick="${canCheck ? `toggleCalTask(${d},${i});event.stopPropagation()` : 'event.stopPropagation()'}"
+             class="text-[10px] leading-tight flex items-center gap-1 rounded px-1.5 py-1 truncate border ${task.done
+               ? 'bg-neutral-800/60 text-neutral-500 border-neutral-700/50 line-through'
+               : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'} ${canCheck ? 'cursor-pointer hover:ring-1 hover:ring-emerald-500/40' : ''}"
+             title="${task.t}${canCheck ? ' — clic para marcar ' + (task.done ? 'pendiente' : 'realizada') : ''}">
+            <span class="shrink-0">${task.done ? '☑' : '☐'}</span><span class="truncate">${task.t}</span>
+          </p>`).join('')}
+      </div>
+    </div>`;
+  }
+  // relleno (30 días, empieza lunes → quedan 5 celdas vacías al final)
+  for (let i = 0; i < 5; i++) html += '<div class="min-h-[88px] border-b border-r border-neutral-800/70 bg-neutral-950/30"></div>';
+  grid.innerHTML = html;
+}
+
+function clickDay(d) {
+  if (currentRole !== 'jefatura') { toast('Solo Jefatura de Mantención puede asignar tareas en el calendario.', 'error'); return; }
+  const tarea = prompt(`Asignar tarea para el ${d} de Junio 2026:`);
+  if (tarea && tarea.trim()) {
+    (calendarTasks[d] = calendarTasks[d] || []).push({ t: tarea.trim(), done: false });
+    toast(`Tarea asignada al ${d} Jun: "${tarea.trim()}"`, 'success');
+    renderCalendar();
+  }
+}
+
+function toggleCalTask(d, i) {
+  const task = calendarTasks[d][i];
+  task.done = !task.done;
+  toast(task.done
+    ? `✓ ${ROLES[currentRole].name} marcó realizada: "${task.t}" (${d} Jun)`
+    : `Tarea "${task.t}" vuelve a pendiente.`, task.done ? 'success' : 'info');
+  renderCalendar();
+}
+
+/* ═══════════════════════ FIRMWARE ═══════════════════════ */
+
+function renderFirmwares() {
+  const cont = document.getElementById('fwList');
+  if (!cont) return;
+  const badges = {
+    'Aprobado':  'bg-emerald-500/15 text-emerald-400',
+    'Rechazado': 'bg-red-500/15 text-red-400',
+    'En prueba': 'bg-violet-500/15 text-violet-400',
+    'En cola':   'bg-neutral-700/50 text-neutral-300',
+  };
+  cont.innerHTML = firmwares.map(f => `
+    <div class="bg-neutral-950 border border-neutral-800 rounded-lg p-4">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <p class="text-sm font-mono font-semibold text-neutral-200">${f.archivo}</p>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full ${badges[f.estado]}">${f.estado.toUpperCase()}</span>
+          ${f.estado !== 'Rechazado' ? `<button onclick="descargarFW('${f.archivo}')" class="text-[11px] font-bold bg-violet-600 hover:bg-violet-500 text-white px-2.5 py-1 rounded-md"><svg class="w-3.5 h-3.5 inline -mt-0.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Descargar</button>` : ''}
+        </div>
+      </div>
+      <p class="text-[11px] text-neutral-500 mt-1">${f.cruce} · ${f.version} · subido el ${f.fecha}</p>
+      ${f.feedback ? `<p class="text-xs mt-2 px-3 py-2 rounded-lg ${f.estado === 'Rechazado' ? 'bg-red-500/10 text-red-300 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'}">${f.feedback}</p>` : ''}
+    </div>`).join('');
+}
+
+let fwSeq = 304;
+function subirFirmware() {
+  const cruce = document.getElementById('fwCruce').value;
+  const version = document.getElementById('fwVersion').value || 'v0.0.0';
+  const slug = cruce.toLowerCase().split(' ')[0].replace(/[^a-z]/g, '');
+  const archivo = `auter_a5_${slug}_${version.replace(/\./g, '')}.bin`;
+  firmwares.unshift({ id: fwSeq++, archivo, cruce, version, estado: 'En cola', fecha: '12 Jun' });
+  toast(`Firmware ${archivo} subido. Disponible en Pruebas Banco del taller.`, 'success');
+  renderFirmwares();
+}
+
+/* ═══════════════════════ IOT ═══════════════════════ */
+
+function renderIot() {
+  const dots = { online: 'bg-emerald-500', offline: 'bg-red-500', degradado: 'bg-amber-500' };
+  const txts = { online: 'text-emerald-400', offline: 'text-red-400', degradado: 'text-amber-400' };
+  document.getElementById('iotTable').innerHTML = iotRows.map(r => `
+    <tr class="hover:bg-neutral-800/30">
+      <td class="py-3 pr-4 font-mono font-bold text-amber-400">${r.cruce}</td>
+      <td class="py-3 pr-4 text-neutral-200">${r.ubicacion}</td>
+      <td class="py-3 pr-4">${r.ctrl}</td>
+      <td class="py-3 pr-4 font-mono text-violet-300">${r.gw}</td>
+      <td class="py-3 pr-4 text-neutral-400">${r.sim}</td>
+      <td class="py-3 pr-4"><span class="inline-flex items-center gap-1.5 ${txts[r.estado]} text-xs font-bold"><span class="w-2 h-2 rounded-full ${dots[r.estado]}"></span>${r.estado.toUpperCase()}</span></td>
+      <td class="py-3 text-neutral-500 text-xs">${r.signal}</td>
+    </tr>`).join('');
+}
+
+let crxSeq = 6;
+function agregarGateway() {
+  iotRows.push({
+    cruce: `CRX-00${crxSeq++}`, ubicacion: 'Nuevo cruce (por definir)', ctrl: 'Auter A5',
+    gw: 'Teltonika TRB256', sim: 'Entel M2M', estado: 'offline', signal: 'sin señal aún',
+  });
+  toast('Gateway registrado en el directorio. Pendiente de instalación en terreno.', 'success');
+  renderIot();
+}
+
+/* ═══════════════════════ AGENDA ═══════════════════════ */
+
+function renderAgenda() {
+  const colors = { logística: 'bg-sky-500/15 text-sky-400', taller: 'bg-amber-500/15 text-amber-400', pruebas: 'bg-violet-500/15 text-violet-400', terreno: 'bg-emerald-500/15 text-emerald-400' };
+  document.getElementById('agendaList').innerHTML = agenda.map(a => `
+    <div class="flex items-center gap-4 bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3">
+      <span class="font-mono font-bold text-amber-400 text-sm w-14 shrink-0">${a.hora}</span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-neutral-200">${a.tarea}</p>
+        <p class="text-[11px] text-neutral-500">${a.lugar}</p>
+      </div>
+      <span class="text-[10px] font-bold px-2 py-1 rounded-full ${colors[a.tipo]} uppercase shrink-0">${a.tipo}</span>
+    </div>`).join('');
+}
+
+/* ═══════════════════════ TOASTS ═══════════════════════ */
+
+function toast(msg, type = 'info') {
+  const colors = { success: 'border-emerald-500/50 bg-emerald-500/10', error: 'border-red-500/50 bg-red-500/10', info: 'border-amber-500/50 bg-amber-500/10' };
+  const icons = { success: '✓', error: '⚠', info: 'ℹ' };
+  const el = document.createElement('div');
+  el.className = `toast-enter border ${colors[type]} backdrop-blur rounded-lg px-4 py-3 text-sm text-neutral-200 shadow-xl flex items-start gap-2`;
+  el.innerHTML = `<span class="font-bold">${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 4000);
+}
+
+/* ═══════════════════════ INIT ═══════════════════════ */
+
+function renderAll() {
+  renderInicio();
+  renderObrasKpis();
+  renderObrasAlertas();
+  renderObrasGantt();
+  renderKanbanObras();
+  renderGarantias();
+  renderFinanciero();
+  renderStockKpi();
+  renderInventario();
+  renderMovimientos();
+  renderBodega();
+  renderFinanzas();
+  renderKanbanTaller();
+  renderCalendar();
+  renderFirmwares();
+  renderIot();
+  renderAgenda();
+}
+
+applyRole();
+switchView('inicio');
+</script>
+</body>
+</html>
