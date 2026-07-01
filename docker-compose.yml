@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cjtraffic-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cjtraffic
+      POSTGRES_PASSWORD: cjtraffic_dev
+      POSTGRES_DB: cjtraffic
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
