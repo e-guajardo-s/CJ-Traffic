@@ -1,7 +1,9 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
-import { requireAuth, requireModulo, signToken } from "./auth";
+import { requireAuth, signToken } from "./auth";
+import { iotRouter } from "./routes/iot";
+import { firmwareRouter } from "./routes/firmware";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -33,26 +35,11 @@ app.get("/me/permissions", requireAuth, async (req, res) => {
     where: { rolId: req.user!.rolId },
     include: { modulo: true },
   });
-  res.json(
-    Object.fromEntries(permisos.map((p) => [p.modulo.clave, p.nivel])),
-  );
+  res.json(Object.fromEntries(permisos.map((p) => [p.modulo.clave, p.nivel])));
 });
 
-app.get("/iot/gateways", requireAuth, requireModulo("iot", "LECTURA"), async (_req, res) => {
-  const cruces = await prisma.cruce.findMany({
-    include: { gateway: true },
-    orderBy: { codigo: "asc" },
-  });
-  res.json(cruces);
-});
-
-app.get("/firmware/programaciones", requireAuth, requireModulo("firmware", "LECTURA"), async (_req, res) => {
-  const programaciones = await prisma.programacion.findMany({
-    include: { cruce: true, subidoPor: true, feedbacks: true },
-    orderBy: { createdAt: "desc" },
-  });
-  res.json(programaciones);
-});
+app.use("/iot", iotRouter);
+app.use("/firmware", firmwareRouter);
 
 app.listen(PORT, () => {
   console.log(`API escuchando en http://localhost:${PORT}`);

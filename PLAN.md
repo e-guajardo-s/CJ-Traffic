@@ -60,6 +60,11 @@ Base sobre la que todo se apoya (Próximos Pasos 1 y 4 del informe).
 
 **0.2 ✅ Auth + RBAC sobre el piloto:** `Usuario.passwordHash` (bcryptjs), `POST /auth/login` (emite JWT con `rolId`), `GET /me/permissions` (matriz rol→módulo del usuario autenticado). Modelos `Modulo` y `RolModuloPermiso` (niveles OCULTO/LECTURA/ESCRITURA) reemplazan el `PERM` de cliente. Middleware `requireAuth` + `requireModulo(clave, nivelMinimo)` protege `/iot/gateways` y `/firmware/programaciones`. Validado end-to-end: login válido/inválido, 401 sin token, 403 con permiso insuficiente (rol `firmware`→`iot`=OCULTO), 200 con permiso suficiente.
 
+**0.3 ✅ Profundización — edición + auditoría + diseño visual:**
+- Backend: `PATCH /iot/gateways/:cruceId` (requiere `ESCRITURA` en `iot`) edita modelo/SIM-APN/estado con validación; rutas modularizadas en `src/routes/{iot,firmware}.ts`.
+- Modelo `BitacoraEntry` (§8 informe): registro inmutable de acciones sensibles (autor, acción, entidad, valores antes/después en JSON). El PATCH de gateway ya escribe en bitácora.
+- Frontend: layout completo estilo prototipo — `Sidebar` (logo, nav por módulo con ícono, estado activo `amber-500/10`, chip de usuario con color por rol), header con título dinámico, sistema de `Toast` (pub-sub simple) y `Modal` genérico. Modal de edición de gateway con formulario controlado, guardado async y refresco de tabla. Validado en navegador con Elías (`desarrollo`, ve ambos módulos, puede editar IoT) y confirmado en bitácora (2 entradas registradas: vía curl y vía UI).
+
 1. **Esquema PostgreSQL** (§6), agrupado por dominios:
    - *Identidad:* ✅ `Usuario`, `Rol`, `Modulo`, `RolModuloPermiso` (piloto). Falta extender a Obras/Bodega.
    - *Obras:* `proyectos`, `kanban_tareas`, `finanzas`.

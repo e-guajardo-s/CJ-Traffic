@@ -31,6 +31,7 @@ model Usuario {
 
   programacionesSubidas Programacion[] @relation("SubidoPor")
   feedbacks             Feedback[]
+  bitacora              BitacoraEntry[]
 }
 
 // ───────────────────────── RBAC (§7, §9 informe) ─────────────────────────
@@ -126,4 +127,19 @@ model Feedback {
   comentario     String
   aprobado       Boolean // true = aprobado, false = rechazado
   createdAt      DateTime     @default(now())
+}
+
+// ───────────────────────── Auditoría (§8 informe) ─────────────────────────
+// Registro inmutable de acciones sensibles: cambios de stock, aprobaciones,
+// accesos a documentación restringida. Nunca se actualiza ni se borra, solo se crea.
+
+model BitacoraEntry {
+  id        Int      @id @default(autoincrement())
+  autor     Usuario  @relation(fields: [autorId], references: [id])
+  autorId   Int
+  accion    String // ej. "gateway.actualizar"
+  entidad   String // ej. "GatewayIot"
+  entidadId Int
+  detalle   Json // valores previos/nuevos, para trazabilidad
+  createdAt DateTime @default(now())
 }
