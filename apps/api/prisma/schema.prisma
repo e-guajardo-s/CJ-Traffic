@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -12,9 +10,89 @@ datasource db {
   provider = "postgresql"
 }
 
-// Modelo mínimo para validar el ciclo local (conexión + migración + cliente).
-// El esquema completo de dominio (usuarios, permisos, obras, bodega, etc.) se define en Fase 1.
+// ───────────────────────── Identidad (mínima) ─────────────────────────
+// El esquema completo de permisos (rol_modulo_permiso) se define al abordar
+// Obras/Bodega en Fase 1. Por ahora alcanza para relacionar autoría.
+
 model Rol {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @unique
+  usuarios Usuario[]
+}
+
+model Usuario {
   id     Int    @id @default(autoincrement())
-  nombre String @unique
+  nombre String
+  email  String @unique
+  rol    Rol    @relation(fields: [rolId], references: [id])
+  rolId  Int
+
+  programacionesSubidas Programacion[] @relation("SubidoPor")
+  feedbacks             Feedback[]
+}
+
+// ───────────────────────── Área de Desarrollo (piloto) ─────────────────
+// Directorio de cruces + Mantenedor IoT (§8 informe) y Firmware con
+// control de versiones y feedback de aprobación/rechazo hacia Taller (§6).
+
+model Cruce {
+  id          Int      @id @default(autoincrement())
+  codigo      String   @unique // ej. "CRX-001"
+  ubicacion   String
+  controlador String // ej. "Auter A5"
+  createdAt   DateTime @default(now())
+
+  gateway        GatewayIot?
+  programaciones Programacion[]
+}
+
+enum EstadoGateway {
+  ONLINE
+  OFFLINE
+  DEGRADADO
+}
+
+model GatewayIot {
+  id            Int           @id @default(autoincrement())
+  cruce         Cruce         @relation(fields: [cruceId], references: [id])
+  cruceId       Int           @unique
+  modelo        String // ej. "Teltonika TRB256"
+  simApn        String // ej. "Entel M2M"
+  estado        EstadoGateway @default(OFFLINE)
+  ultimaSenalAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+enum EstadoProgramacion {
+  EN_COLA
+  EN_PRUEBA
+  APROBADO
+  RECHAZADO
+}
+
+model Programacion {
+  id            Int                @id @default(autoincrement())
+  cruce         Cruce              @relation(fields: [cruceId], references: [id])
+  cruceId       Int
+  version       String
+  archivoNombre String
+  archivoUrl    String? // enlace S3 (URL firmada); se completa al integrar carga real
+  estado        EstadoProgramacion @default(EN_COLA)
+  subidoPor     Usuario            @relation("SubidoPor", fields: [subidoPorId], references: [id])
+  subidoPorId   Int
+  createdAt     DateTime           @default(now())
+
+  feedbacks Feedback[]
+}
+
+model Feedback {
+  id             Int          @id @default(autoincrement())
+  programacion   Programacion @relation(fields: [programacionId], references: [id])
+  programacionId Int
+  autor          Usuario      @relation(fields: [autorId], references: [id])
+  autorId        Int
+  comentario     String
+  aprobado       Boolean // true = aprobado, false = rechazado
+  createdAt      DateTime     @default(now())
 }

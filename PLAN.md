@@ -54,8 +54,11 @@
 
 Base sobre la que todo se apoya (Próximos Pasos 1 y 4 del informe).
 
-**0. Entorno técnico local primero:** Postgres local vía Docker + Prisma inicializado (`prisma init`) + API Express mínima que confirme conexión. Validar el ciclo `schema.prisma` → `prisma migrate dev` → datos visibles.
-**0.1 Primer caso real — Área de Desarrollo Tecnológico:** usar el módulo propio de Desarrollo (rol `desarrollo`) como piloto de punta a punta antes de escalar a Obras/Bodega: tablas `cruces`/`gateways_iot` (Mantenedor IoT: Cruce↔Controlador↔Gateway) y `programaciones`/`feedback` (Firmware con changelog y aprobación/rechazo hacia Taller). Es un alcance acotado, ya definido en el prototipo (`view-iot`, `view-firmware`), ideal para validar backend+RBAC+React sin la complejidad de Obras/Bodega.
+**0. ✅ Entorno técnico local:** Postgres 16 vía Docker (`docker-compose.yml`) + Prisma 7 (`@prisma/adapter-pg`) + API Express mínima en `apps/api`. Ciclo `schema.prisma` → `prisma migrate dev` → datos visibles, validado end-to-end.
+
+**0.1 ✅ Primer caso real — Área de Desarrollo Tecnológico:** modeladas y migradas las tablas del módulo piloto (rol `desarrollo`): `Cruce`, `GatewayIot` (Mantenedor IoT: Cruce↔Controlador↔Gateway), `Programacion` y `Feedback` (Firmware con estado en_cola/en_prueba/aprobado/rechazado). Identidad mínima (`Usuario`/`Rol`) para autoría. Seed (`apps/api/prisma/seed.ts`) carga los datos reales del prototipo (5 cruces/gateways, 3 firmwares con su feedback). Endpoints de prueba: `GET /iot/gateways`, `GET /firmware/programaciones`.
+
+**Pendiente de este bloque:** exponer estos endpoints con el middleware RBAC (punto 4) en vez de dejarlos abiertos; completar `archivoUrl` cuando se integre la carga real a S3 (Fase 5).
 
 1. **Esquema PostgreSQL** (§6), agrupado por dominios:
    - *Identidad:* `usuarios`, `roles`, `permisos`, `rol_modulo_permiso` (matriz configurable por datos, no por código).
