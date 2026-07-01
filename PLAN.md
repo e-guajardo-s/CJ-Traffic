@@ -37,9 +37,9 @@
 1. `git init` en `D:\dev\intranet` + repo remoto en GitHub. Preservar `index.html` como `/legacy/prototype.html`.
 2. Estructura monorepo:
    ```
-   /apps/web             → React + Vite + Tailwind
-   /apps/api             → Node + Express
-   /packages/db          → esquema, migraciones, seeds
+   /frontend             → React + Vite + Tailwind
+   /backend              → Node + Express + Prisma
+   /packages/db          → esquema, migraciones, seeds (referencia)
    /infra                → IaC AWS (Terraform o CDK)
    /.github/workflows    → CI/CD
    ```
@@ -54,9 +54,9 @@
 
 Base sobre la que todo se apoya (Próximos Pasos 1 y 4 del informe).
 
-**0. ✅ Entorno técnico local:** Postgres 16 vía Docker (`docker-compose.yml`) + Prisma 7 (`@prisma/adapter-pg`) + API Express mínima en `apps/api`. Ciclo `schema.prisma` → `prisma migrate dev` → datos visibles, validado end-to-end.
+**0. ✅ Entorno técnico local:** Postgres 16 vía Docker (`docker-compose.yml`) + Prisma 7 (`@prisma/adapter-pg`) + API Express mínima en `backend`. Ciclo `schema.prisma` → `prisma migrate dev` → datos visibles, validado end-to-end.
 
-**0.1 ✅ Primer caso real — Área de Desarrollo Tecnológico:** modeladas y migradas las tablas del módulo piloto (rol `desarrollo`): `Cruce`, `GatewayIot` (Mantenedor IoT: Cruce↔Controlador↔Gateway), `Programacion` y `Feedback` (Firmware con estado en_cola/en_prueba/aprobado/rechazado). Identidad mínima (`Usuario`/`Rol`) para autoría. Seed (`apps/api/prisma/seed.ts`) carga los datos reales del prototipo (5 cruces/gateways, 3 firmwares con su feedback). Endpoints de prueba: `GET /iot/gateways`, `GET /firmware/programaciones`.
+**0.1 ✅ Primer caso real — Área de Desarrollo Tecnológico:** modeladas y migradas las tablas del módulo piloto (rol `desarrollo`): `Cruce`, `GatewayIot` (Mantenedor IoT: Cruce↔Controlador↔Gateway), `Programacion` y `Feedback` (Firmware con estado en_cola/en_prueba/aprobado/rechazado). Identidad mínima (`Usuario`/`Rol`) para autoría. Seed (`backend/prisma/seed.ts`) carga los datos reales del prototipo (5 cruces/gateways, 3 firmwares con su feedback). Endpoints de prueba: `GET /iot/gateways`, `GET /firmware/programaciones`.
 
 **0.2 ✅ Auth + RBAC sobre el piloto:** `Usuario.passwordHash` (bcryptjs), `POST /auth/login` (emite JWT con `rolId`), `GET /me/permissions` (matriz rol→módulo del usuario autenticado). Modelos `Modulo` y `RolModuloPermiso` (niveles OCULTO/LECTURA/ESCRITURA) reemplazan el `PERM` de cliente. Middleware `requireAuth` + `requireModulo(clave, nivelMinimo)` protege `/iot/gateways` y `/firmware/programaciones`. Validado end-to-end: login válido/inválido, 401 sin token, 403 con permiso insuficiente (rol `firmware`→`iot`=OCULTO), 200 con permiso suficiente.
 
@@ -84,13 +84,13 @@ Base sobre la que todo se apoya (Próximos Pasos 1 y 4 del informe).
 
 El prototipo ya definió UX, módulos y componentes; esto es *portar*, no rediseñar.
 
-1. ✅ Scaffold Vite + React + Tailwind v4 (`@tailwindcss/vite`, sin CDN) en `apps/web`. Tema dark portado (fondo `neutral-950`, tarjetas `neutral-900`).
+1. ✅ Scaffold Vite + React + Tailwind v4 (`@tailwindcss/vite`, sin CDN) en `frontend`. Tema dark portado (fondo `neutral-950`, tarjetas `neutral-900`).
 2. Descomponer `index.html` en componentes por módulo: Inicio, Obras (Resumen·Cartera/Kanban·Gantt·Financiero·Garantías), Bodega (Inventario·Solicitudes·Cola), Taller, Firmware, IoT, Agenda. *(Hecho: IoT y Firmware — piloto. Pendiente el resto.)*
 3. ✅ Reemplazado el simulador de rol por **login real** (`src/pages/Login.tsx` + `AuthContext`); la UI consume `GET /me/permissions` y oculta pestañas según el nivel de acceso del rol (validado con Elías=`desarrollo` viendo ambas pestañas vs. Febe=`firmware` sin ver IoT).
 4. ✅ Cliente API (`src/api.ts`, fetch + token JWT en `Authorization`, proxy Vite `/api` → `localhost:3001`). Chart.js: pendiente decidir al llegar a Financiero.
 5. ✅ Cableado a la API real: **Área de Desarrollo (IoT + Firmware)** funcionando end-to-end (login → RBAC → datos reales). Siguiente: **Obras**.
 
-**Cómo correr localmente:** `docker compose up -d` (Postgres) → `npm run dev` en `apps/api` (puerto 3001) → `npm run dev` en `apps/web` (puerto 5173, con proxy a la API).
+**Cómo correr localmente:** `docker compose up -d` (Postgres) → `npm run dev` en `backend` (puerto 3001) → `npm run dev` en `frontend` (puerto 5173, con proxy a la API).
 
 ---
 
