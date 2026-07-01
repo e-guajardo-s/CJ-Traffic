@@ -79,11 +79,13 @@ Base sobre la que todo se apoya (Próximos Pasos 1 y 4 del informe).
 
 El prototipo ya definió UX, módulos y componentes; esto es *portar*, no rediseñar.
 
-1. Scaffold Vite + React + Tailwind (config, no CDN). Portar el tema dark.
-2. Descomponer `index.html` en componentes por módulo: Inicio, Obras (Resumen·Cartera/Kanban·Gantt·Financiero·Garantías), Bodega (Inventario·Solicitudes·Cola), Taller, Firmware, IoT, Agenda.
-3. Reemplazar el **simulador de rol** por login real; la UI consume `perm(mod)` desde el backend (`GET /me/permissions`).
-4. Cliente API (axios/fetch + interceptor JWT). Chart.js: mantener o migrar a Recharts en el módulo Financiero.
-5. Cablear módulo por módulo a la API real, empezando por **Área de Desarrollo (IoT + Firmware)** como piloto, luego **Obras**.
+1. ✅ Scaffold Vite + React + Tailwind v4 (`@tailwindcss/vite`, sin CDN) en `apps/web`. Tema dark portado (fondo `neutral-950`, tarjetas `neutral-900`).
+2. Descomponer `index.html` en componentes por módulo: Inicio, Obras (Resumen·Cartera/Kanban·Gantt·Financiero·Garantías), Bodega (Inventario·Solicitudes·Cola), Taller, Firmware, IoT, Agenda. *(Hecho: IoT y Firmware — piloto. Pendiente el resto.)*
+3. ✅ Reemplazado el simulador de rol por **login real** (`src/pages/Login.tsx` + `AuthContext`); la UI consume `GET /me/permissions` y oculta pestañas según el nivel de acceso del rol (validado con Elías=`desarrollo` viendo ambas pestañas vs. Febe=`firmware` sin ver IoT).
+4. ✅ Cliente API (`src/api.ts`, fetch + token JWT en `Authorization`, proxy Vite `/api` → `localhost:3001`). Chart.js: pendiente decidir al llegar a Financiero.
+5. ✅ Cableado a la API real: **Área de Desarrollo (IoT + Firmware)** funcionando end-to-end (login → RBAC → datos reales). Siguiente: **Obras**.
+
+**Cómo correr localmente:** `docker compose up -d` (Postgres) → `npm run dev` en `apps/api` (puerto 3001) → `npm run dev` en `apps/web` (puerto 5173, con proxy a la API).
 
 ---
 
