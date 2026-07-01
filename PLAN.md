@@ -3,6 +3,11 @@
 > Basado en el **Informe Técnico de Stack, Arquitectura e Integración de APIs** (Jornada del 26-06-2026) y en el estado actual del prototipo `index.html`.
 > Última actualización: 2026-07-01.
 
+## Decisiones tomadas
+
+- **ORM: Prisma.** Capa que traduce entre código y tablas SQL (evita escribir SQL a mano), genera migraciones automáticas a partir de un esquema declarativo (`schema.prisma`) y sirve como documentación viva del modelo de datos — clave dado el volumen de relaciones (roles↔permisos↔módulos, proyectos↔bodega↔materiales).
+- **Orden de arranque: primero el módulo/Área de Desarrollo Tecnológico.** Antes de abordar Obras/Bodega en profundidad, se deja sanjado el área propia de Desarrollo (rol `desarrollo`, Elías Guajardo) que hoy existe en el prototipo como: (1) **Mantenedor IoT** — directorio de telemetría Cruce↔Controlador↔Gateway (`view-iot`, tabla `iotTable`, alta de gateways); (2) **Firmware con control de versiones** — carga de programaciones, historial/changelog, feedback de aprobación/rechazo hacia Taller (`view-firmware`). Este módulo es más acotado que Obras/Bodega y sirve como primer caso real para validar el ciclo completo backend+RBAC+React de punta a punta antes de escalar a los módulos más grandes.
+
 ## Punto de partida vs. destino
 
 | | Hoy (prototipo) | Destino (jornada 26-06) |
@@ -41,13 +46,16 @@
 3. Definir 3 ambientes: `local` → `dev` (RDS pruebas + Defontana `replapi`) → `prod`.
 4. `.env` + gestor de secretos desde el día 1 (nunca credenciales en el repo).
 
-**Decisión pendiente:** ORM. Recomendado **Prisma** (esquema declarativo = migraciones + tipos + documentación del modelo en un solo lugar). Alternativas: Knex, Sequelize.
+**ORM decidido: Prisma** (esquema declarativo = migraciones + tipos + documentación del modelo en un solo lugar).
 
 ---
 
 ## Fase 1 — Modelo de datos + Auth/RBAC (1–1.5 semanas)
 
 Base sobre la que todo se apoya (Próximos Pasos 1 y 4 del informe).
+
+**0. Entorno técnico local primero:** Postgres local vía Docker + Prisma inicializado (`prisma init`) + API Express mínima que confirme conexión. Validar el ciclo `schema.prisma` → `prisma migrate dev` → datos visibles.
+**0.1 Primer caso real — Área de Desarrollo Tecnológico:** usar el módulo propio de Desarrollo (rol `desarrollo`) como piloto de punta a punta antes de escalar a Obras/Bodega: tablas `cruces`/`gateways_iot` (Mantenedor IoT: Cruce↔Controlador↔Gateway) y `programaciones`/`feedback` (Firmware con changelog y aprobación/rechazo hacia Taller). Es un alcance acotado, ya definido en el prototipo (`view-iot`, `view-firmware`), ideal para validar backend+RBAC+React sin la complejidad de Obras/Bodega.
 
 1. **Esquema PostgreSQL** (§6), agrupado por dominios:
    - *Identidad:* `usuarios`, `roles`, `permisos`, `rol_modulo_permiso` (matriz configurable por datos, no por código).
@@ -72,17 +80,18 @@ El prototipo ya definió UX, módulos y componentes; esto es *portar*, no redise
 2. Descomponer `index.html` en componentes por módulo: Inicio, Obras (Resumen·Cartera/Kanban·Gantt·Financiero·Garantías), Bodega (Inventario·Solicitudes·Cola), Taller, Firmware, IoT, Agenda.
 3. Reemplazar el **simulador de rol** por login real; la UI consume `perm(mod)` desde el backend (`GET /me/permissions`).
 4. Cliente API (axios/fetch + interceptor JWT). Chart.js: mantener o migrar a Recharts en el módulo Financiero.
-5. Cablear módulo por módulo a la API real, empezando por **Obras**.
+5. Cablear módulo por módulo a la API real, empezando por **Área de Desarrollo (IoT + Firmware)** como piloto, luego **Obras**.
 
 ---
 
 ## Fase 3 — Módulos de negocio contra API real (2–3 semanas)
 
-Priorización según dolores del levantamiento:
+Priorización: primero el módulo piloto propio, luego según dolores del levantamiento:
+0. **Área de Desarrollo (IoT + Firmware)** — piloto de punta a punta (ver Fase 1, punto 0.1). Mantenedor IoT (alta/edición de gateways) y Firmware con control de versiones + feedback de aprobación/rechazo hacia Taller.
 1. **Obras** — Kanban (escritura Carlos/coordinación), Gantt editable, Financiero (solo Gerencia). Costos de material/mano de obra por proyecto derivados de despachos de bodega (lo pidió Carlos).
 2. **Bodega** — inventario nativo, solicitudes con escalamiento crítico, cola de despacho, kárdex de movimientos. Descuento de stock al despachar pasa a transacción de BD.
 3. **Cubicación** — dolor #1 de Javier; módulo base existe, priorizar tras Obras/Bodega.
-4. Diferibles: Taller (Pablo), Firmware con control de versiones (Febe), IoT.
+4. Diferible: **Taller** (Pablo).
 
 ---
 
@@ -140,7 +149,6 @@ Fase 6 cierra
 
 ## Decisiones abiertas
 
-- [ ] Confirmar ORM (recomendado: Prisma).
 - [ ] IaC: Terraform vs. AWS CDK.
 - [ ] Librería de gráficos en React: mantener Chart.js o migrar a Recharts.
 - [ ] Estrategia 2FA (TOTP/app authenticator vs. SMS/email).
