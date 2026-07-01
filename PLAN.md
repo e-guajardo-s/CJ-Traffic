@@ -58,20 +58,20 @@ Base sobre la que todo se apoya (Próximos Pasos 1 y 4 del informe).
 
 **0.1 ✅ Primer caso real — Área de Desarrollo Tecnológico:** modeladas y migradas las tablas del módulo piloto (rol `desarrollo`): `Cruce`, `GatewayIot` (Mantenedor IoT: Cruce↔Controlador↔Gateway), `Programacion` y `Feedback` (Firmware con estado en_cola/en_prueba/aprobado/rechazado). Identidad mínima (`Usuario`/`Rol`) para autoría. Seed (`apps/api/prisma/seed.ts`) carga los datos reales del prototipo (5 cruces/gateways, 3 firmwares con su feedback). Endpoints de prueba: `GET /iot/gateways`, `GET /firmware/programaciones`.
 
-**Pendiente de este bloque:** exponer estos endpoints con el middleware RBAC (punto 4) en vez de dejarlos abiertos; completar `archivoUrl` cuando se integre la carga real a S3 (Fase 5).
+**0.2 ✅ Auth + RBAC sobre el piloto:** `Usuario.passwordHash` (bcryptjs), `POST /auth/login` (emite JWT con `rolId`), `GET /me/permissions` (matriz rol→módulo del usuario autenticado). Modelos `Modulo` y `RolModuloPermiso` (niveles OCULTO/LECTURA/ESCRITURA) reemplazan el `PERM` de cliente. Middleware `requireAuth` + `requireModulo(clave, nivelMinimo)` protege `/iot/gateways` y `/firmware/programaciones`. Validado end-to-end: login válido/inválido, 401 sin token, 403 con permiso insuficiente (rol `firmware`→`iot`=OCULTO), 200 con permiso suficiente.
 
 1. **Esquema PostgreSQL** (§6), agrupado por dominios:
-   - *Identidad:* `usuarios`, `roles`, `permisos`, `rol_modulo_permiso` (matriz configurable por datos, no por código).
+   - *Identidad:* ✅ `Usuario`, `Rol`, `Modulo`, `RolModuloPermiso` (piloto). Falta extender a Obras/Bodega.
    - *Obras:* `proyectos`, `kanban_tareas`, `finanzas`.
    - *Bodega:* `solicitudes` (estado normal/crítica, monto, umbral), `aprobaciones`, `cola_despacho`, `materiales` (espejo cacheado de Defontana).
-   - *Docs:* `documentos`/`programaciones` (metadata + link S3 + changelog), `feedback`.
-   - *Terreno:* `cruces`. *Auditoría:* `bitacora` (inmutable).
-2. **Migración de datos del prototipo:** script que transforma `OBRAS_REAL`, `FIN_MENSUAL`, `inventario` y `PERM` de `index.html` en seeds SQL. `PERM` → filas de `rol_modulo_permiso`.
-3. **Auth (§8, §10):** JWT, hashing argon2/bcrypt, login. 2FA se puede diferir a Fase 6, pero dejar el campo/flag modelado para perfiles con aprobación.
-4. **Middleware RBAC autoritativo (§7, §9):** valida en *cada* request el nivel de acceso (Oculto / Solo Lectura / Lectura+Escritura) por módulo. Ninguna regla de acceso vive en el frontend.
-5. **Regla de excepción económica:** solicitud de bodega sobre umbral → escala a *Crítica* → bloqueada para despacho hasta aprobación de Gerencia/Jefatura. Lógica de servidor, no de UI.
+   - *Docs:* ✅ `Programacion`/`Feedback` (piloto, con changelog vía `estado` + historial de `Feedback`). Falta generalizar a `documentos` de otros módulos.
+   - *Terreno:* ✅ `Cruce`. *Auditoría:* `bitacora` (inmutable) — pendiente.
+2. **Migración de datos del prototipo:** ✅ hecho para el piloto (`seed.ts`); pendiente para `OBRAS_REAL`, `FIN_MENSUAL`, `inventario` de Obras/Bodega.
+3. **Auth (§8, §10):** ✅ JWT + bcryptjs, login. 2FA se difiere a Fase 6 (campo no modelado aún — agregar al extender `Usuario`).
+4. **Middleware RBAC autoritativo (§7, §9):** ✅ implementado y validado sobre el piloto (`requireModulo`); se reutiliza tal cual al modelar Obras/Bodega, solo agregando filas a `RolModuloPermiso`.
+5. **Regla de excepción económica:** solicitud de bodega sobre umbral → escala a *Crítica* → bloqueada para despacho hasta aprobación de Gerencia/Jefatura. Lógica de servidor, no de UI. (Pendiente — depende del esquema de Bodega.)
 
-**Hito:** API responde login + `GET /me/permissions` y un endpoint protegido de prueba con RBAC real.
+**Hito parcial alcanzado:** API responde login + `GET /me/permissions` y endpoints protegidos con RBAC real, sobre el módulo piloto Área de Desarrollo.
 
 ---
 

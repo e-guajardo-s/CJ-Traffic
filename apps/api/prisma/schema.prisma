@@ -15,20 +15,51 @@ datasource db {
 // Obras/Bodega en Fase 1. Por ahora alcanza para relacionar autoría.
 
 model Rol {
-  id       Int       @id @default(autoincrement())
-  nombre   String    @unique
+  id       Int                @id @default(autoincrement())
+  nombre   String             @unique
   usuarios Usuario[]
+  permisos RolModuloPermiso[]
 }
 
 model Usuario {
-  id     Int    @id @default(autoincrement())
-  nombre String
-  email  String @unique
-  rol    Rol    @relation(fields: [rolId], references: [id])
-  rolId  Int
+  id           Int    @id @default(autoincrement())
+  nombre       String
+  email        String @unique
+  passwordHash String
+  rol          Rol    @relation(fields: [rolId], references: [id])
+  rolId        Int
 
   programacionesSubidas Programacion[] @relation("SubidoPor")
   feedbacks             Feedback[]
+}
+
+// ───────────────────────── RBAC (§7, §9 informe) ─────────────────────────
+// Autoritativo en el backend: cada request valida nivel de acceso rol↔módulo.
+// Nunca se delega al frontend (que solo refleja lo que el backend autoriza).
+
+enum NivelAcceso {
+  OCULTO
+  LECTURA
+  ESCRITURA
+}
+
+model Modulo {
+  id     Int    @id @default(autoincrement())
+  clave  String @unique // ej. "iot", "firmware"
+  nombre String
+
+  permisos RolModuloPermiso[]
+}
+
+model RolModuloPermiso {
+  id       Int         @id @default(autoincrement())
+  rol      Rol         @relation(fields: [rolId], references: [id])
+  rolId    Int
+  modulo   Modulo      @relation(fields: [moduloId], references: [id])
+  moduloId Int
+  nivel    NivelAcceso @default(OCULTO)
+
+  @@unique([rolId, moduloId])
 }
 
 // ───────────────────────── Área de Desarrollo (piloto) ─────────────────

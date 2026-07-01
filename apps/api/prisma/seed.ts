@@ -1,9 +1,20 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
+
+// Contraseña de desarrollo para todos los usuarios de seed. Cambiar en producción.
+const DEV_PASSWORD = "cjtraffic123";
+
+// Matriz de acceso a los módulos del piloto (inferida de los atributos data-roles
+// del prototipo: view-iot y view-firmware, y de qué roles pueden escribir/aprobar).
+const PERMISOS_MODULO: Record<string, Record<string, "OCULTO" | "LECTURA" | "ESCRITURA">> = {
+  iot: { desarrollo: "ESCRITURA", gerencia: "LECTURA", jefatura: "LECTURA", firmware: "OCULTO", tecnico: "OCULTO" },
+  firmware: { desarrollo: "LECTURA", gerencia: "ESCRITURA", jefatura: "LECTURA", firmware: "ESCRITURA", tecnico: "LECTURA" },
+};
 
 // Datos reales extraídos de legacy/prototype.html (arrays `iotRows` y `firmwares`).
 const CRUCES = [
@@ -47,27 +58,38 @@ const FIRMWARES = [
 ];
 
 async function main() {
-  const rolDesarrollo = await prisma.rol.upsert({
-    where: { nombre: "desarrollo" },
-    update: {},
-    create: { nombre: "desarrollo" },
-  });
-  const rolFirmware = await prisma.rol.upsert({
-    where: { nombre: "firmware" },
-    update: {},
-    create: { nombre: "firmware" },
-  });
+  const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
+
+  const roles = Object.fromEntries(
+    await Promise.all(
+      Object.keys(PERMISOS_MODULO.iot).map(async (nombre) => [
+        nombre,
+        await prisma.rol.upsert({ where: { nombre }, update: {}, create: { nombre } }),
+      ]),
+    ),
+  );
 
   const elias = await prisma.usuario.upsert({
     where: { email: "elias.guajardo@cjtraffic.local" },
     update: {},
-    create: { nombre: "Elías Guajardo", email: "elias.guajardo@cjtraffic.local", rolId: rolDesarrollo.id },
+    create: { nombre: "Elías Guajardo", email: "elias.guajardo@cjtraffic.local", passwordHash, rolId: roles.desarrollo.id },
   });
   const febe = await prisma.usuario.upsert({
     where: { email: "febe.benecke@cjtraffic.local" },
     update: {},
-    create: { nombre: "Febe Benecke", email: "febe.benecke@cjtraffic.local", rolId: rolFirmware.id },
+    create: { nombre: "Febe Benecke", email: "febe.benecke@cjtraffic.local", passwordHash, rolId: roles.firmware.id },
   });
+
+  for (const [clave, nombre] of Object.entries({ iot: "Mantenedor IoT", firmware: "Firmware" })) {
+    const modulo = await prisma.modulo.upsert({ where: { clave }, update: {}, create: { clave, nombre } });
+    for (const [rolNombre, nivel] of Object.entries(PERMISOS_MODULO[clave])) {
+      await prisma.rolModuloPermiso.upsert({
+        where: { rolId_moduloId: { rolId: roles[rolNombre].id, moduloId: modulo.id } },
+        update: { nivel },
+        create: { rolId: roles[rolNombre].id, moduloId: modulo.id, nivel },
+      });
+    }
+  }
 
   for (const c of CRUCES) {
     const cruce = await prisma.cruce.upsert({
@@ -106,7 +128,8 @@ async function main() {
     }
   }
 
-  console.log("Seed completo: roles, usuarios, cruces, gateways IoT, programaciones y feedback.");
+  console.log("Seed completo: roles, permisos, usuarios, cruces, gateways IoT, programaciones y feedback.");
+  console.log(`Login de prueba: elias.guajardo@cjtraffic.local / febe.benecke@cjtraffic.local — password: ${DEV_PASSWORD}`);
 }
 
 main()
