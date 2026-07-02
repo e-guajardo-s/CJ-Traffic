@@ -124,31 +124,48 @@ function ProyectoCard({ proyecto }: { proyecto: Proyecto }) {
   return (
     <Link
       to={`/iot/proyectos/${proyecto.id}`}
-      className="block bg-white border border-neutral-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition"
+      className="block group bg-white border border-neutral-200 rounded-2xl p-5 transition-all duration-300 hover:border-orange-400 hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1"
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-bold text-neutral-800">{proyecto.nombre}</p>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${ESTADO_PROYECTO_COLOR[proyecto.estado]}`}>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-base font-bold text-neutral-800 group-hover:text-orange-600 transition-colors line-clamp-1">
+          {proyecto.nombre}
+        </h3>
+        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shrink-0 uppercase tracking-wider ${ESTADO_PROYECTO_COLOR[proyecto.estado]}`}>
           {ESTADO_PROYECTO_LABEL[proyecto.estado]}
         </span>
       </div>
-      {proyecto.descripcion && <p className="text-xs text-neutral-500 mt-1.5 line-clamp-2">{proyecto.descripcion}</p>}
 
-      <div className="mt-4">
-        <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-1">
-          <span>
-            {hechas}/{total} tareas
-          </span>
+      {proyecto.descripcion && (
+        <p className="text-xs text-neutral-500 mt-2 line-clamp-2 leading-relaxed">
+          {proyecto.descripcion}
+        </p>
+      )}
+
+      <div className="mt-5">
+        <div className="flex items-center justify-between text-xs text-neutral-500 mb-1.5 font-medium">
+          <div className="flex items-center gap-1.5">
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-orange-500"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+            <span>{hechas} de {total} tareas</span>
+          </div>
           <span>{progreso}%</span>
         </div>
-        <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-          <div className="h-full bg-orange-500 rounded-full" style={{ width: `${progreso}%` }} />
+        <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progreso}%` }}
+          />
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-4 text-[11px] text-neutral-400">
-        <span>{proyecto.responsable ? proyecto.responsable.nombre : "Sin responsable"}</span>
-        <span>{proyecto._count?.paginas ?? 0} página{proyecto._count?.paginas === 1 ? "" : "s"}</span>
+      <div className="flex items-center justify-between mt-5 pt-4 border-t border-neutral-100 text-[11px] text-neutral-500 font-medium">
+        <div className="flex items-center gap-1.5">
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          <span className="truncate max-w-[120px]">{proyecto.responsable ? proyecto.responsable.nombre : "Sin responsable"}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><polyline points="13 2 13 9 20 9" /></svg>
+          <span>{proyecto._count?.paginas ?? 0} pág{proyecto._count?.paginas === 1 ? "" : "s"}</span>
+        </div>
       </div>
     </Link>
   );

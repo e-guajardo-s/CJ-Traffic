@@ -50,50 +50,61 @@ export default function ProyectoDetalle() {
 
   return (
     <div className="space-y-4">
-      <Link to="/iot/proyectos" className="text-xs font-semibold text-neutral-500 hover:text-neutral-700">
-        ← Volver a Proyectos
+      <Link to="/iot/proyectos" className="inline-flex items-center gap-1 text-xs font-semibold text-neutral-500 hover:text-orange-600 transition-colors">
+        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Volver a Proyectos
       </Link>
 
-      <div className="bg-white border border-neutral-200 rounded-xl p-6">
+      <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-sm">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg font-bold text-neutral-800">{proyecto.nombre}</h1>
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${ESTADO_PROYECTO_COLOR[proyecto.estado]}`}>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-black text-neutral-800 tracking-tight">{proyecto.nombre}</h1>
+              <span className={`text-xs font-bold px-3 py-1 rounded-full border ${ESTADO_PROYECTO_COLOR[proyecto.estado]}`}>
                 {ESTADO_PROYECTO_LABEL[proyecto.estado]}
               </span>
             </div>
-            {proyecto.descripcion && <p className="text-sm text-neutral-500 mt-1.5 max-w-2xl">{proyecto.descripcion}</p>}
-            <div className="flex items-center gap-4 flex-wrap mt-3 text-xs text-neutral-500">
-              <span>Responsable: <span className="font-semibold text-neutral-700">{proyecto.responsable?.nombre ?? "Sin asignar"}</span></span>
-              <span>Inicio: {formatFecha(proyecto.fechaInicio)}</span>
-              <span>Fin: {formatFecha(proyecto.fechaFin)}</span>
+            {proyecto.descripcion && <p className="text-sm text-neutral-500 mt-2 max-w-3xl leading-relaxed">{proyecto.descripcion}</p>}
+
+            <div className="flex items-center gap-6 flex-wrap mt-4 text-xs text-neutral-500">
+              <span className="flex items-center gap-1.5 bg-neutral-50 px-2.5 py-1 rounded-md border border-neutral-100">
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                Responsable: <span className="font-semibold text-neutral-700">{proyecto.responsable?.nombre ?? "Sin asignar"}</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                Inicio: {formatFecha(proyecto.fechaInicio)}
+              </span>
+              <span className="flex items-center gap-1.5">
+                Fin: {formatFecha(proyecto.fechaFin)}
+              </span>
             </div>
           </div>
           {puedeEscribir && (
             <div className="flex items-center gap-2 shrink-0">
-              <button onClick={() => setEditando(true)} className="text-[11px] font-bold bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-700 px-2.5 py-1 rounded-md">
+              <button onClick={() => setEditando(true)} className="text-xs font-bold bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 px-3 py-1.5 rounded-lg shadow-sm transition">
                 Editar proyecto
               </button>
-              <button onClick={() => setEliminando(true)} className="text-[11px] font-bold bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 px-2.5 py-1 rounded-md">
-                Eliminar proyecto
+              <button onClick={() => setEliminando(true)} className="text-xs font-bold bg-white hover:bg-red-50 border border-neutral-200 hover:border-red-200 text-red-600 px-3 py-1.5 rounded-lg shadow-sm transition">
+                Eliminar
               </button>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 mt-5 border-b border-neutral-200">
+        {/* Tabs estilo "Pill" moderno */}
+        <div className="flex items-center gap-1 mt-6 bg-neutral-100/80 p-1 rounded-xl w-fit">
           <button
             onClick={() => setTab("tareas")}
-            className={`text-xs font-bold px-3 py-2 border-b-2 -mb-px ${tab === "tareas" ? "border-orange-500 text-orange-600" : "border-transparent text-neutral-500 hover:text-neutral-700"}`}
+            className={`text-xs font-bold px-4 py-2 rounded-lg transition-all ${tab === "tareas" ? "bg-white text-orange-600 shadow-sm" : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200/50"}`}
           >
-            Tareas
+            Tablero Kanban
           </button>
           <button
             onClick={() => setTab("documentacion")}
-            className={`text-xs font-bold px-3 py-2 border-b-2 -mb-px ${tab === "documentacion" ? "border-orange-500 text-orange-600" : "border-transparent text-neutral-500 hover:text-neutral-700"}`}
+            className={`text-xs font-bold px-4 py-2 rounded-lg transition-all ${tab === "documentacion" ? "bg-white text-orange-600 shadow-sm" : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200/50"}`}
           >
-            Documentación
+            Documentación técnica
           </button>
         </div>
       </div>
@@ -321,14 +332,14 @@ function KanbanBoard({ proyecto, puedeEscribir, onChange }: { proyecto: Proyecto
               const id = Number(e.dataTransfer.getData("text/plain"));
               if (id) moverA(id, col);
             }}
-            className={`bg-neutral-50 border rounded-xl p-3 min-h-[200px] ${colDestacada === col ? "border-orange-400 bg-orange-50/40" : "border-neutral-200"}`}
+            className={`bg-neutral-50/70 border rounded-2xl p-3 min-h-[300px] flex flex-col transition-colors ${colDestacada === col ? "border-orange-400 bg-orange-50/50" : "border-neutral-200"}`}
           >
-            <div className="flex items-center justify-between mb-2 px-1">
-              <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">{ESTADO_TAREA_LABEL[col]}</p>
-              <span className="text-[11px] text-neutral-400">{tareasCol.length}</span>
+            <div className="flex items-center justify-between mb-3 px-2">
+              <p className="text-[11px] font-black uppercase tracking-widest text-neutral-500">{ESTADO_TAREA_LABEL[col]}</p>
+              <span className="text-xs font-semibold bg-neutral-200 text-neutral-600 px-2 py-0.5 rounded-full">{tareasCol.length}</span>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3 flex-1">
               {tareasCol.map((t) => (
                 <div
                   key={t.id}
@@ -339,13 +350,22 @@ function KanbanBoard({ proyecto, puedeEscribir, onChange }: { proyecto: Proyecto
                   }}
                   onDragEnd={() => setArrastrando(null)}
                   onClick={() => puedeEscribir && setTareaModal({ modo: "editar", tarea: t })}
-                  className={`bg-white border border-neutral-200 rounded-lg p-3 shadow-sm ${puedeEscribir ? "cursor-pointer hover:border-orange-300" : ""} ${arrastrando === t.id ? "opacity-40" : ""}`}
+                  className={`bg-white border border-neutral-200 rounded-xl p-4 shadow-sm group transition-all ${puedeEscribir ? "cursor-grab active:cursor-grabbing hover:border-orange-300 hover:shadow-md hover:-translate-y-0.5" : ""} ${arrastrando === t.id ? "opacity-30 border-dashed" : ""}`}
                 >
-                  <p className="text-sm font-semibold text-neutral-800">{t.titulo}</p>
-                  {t.descripcion && <p className="text-xs text-neutral-500 mt-1 line-clamp-2">{t.descripcion}</p>}
-                  <div className="flex items-center justify-between mt-2 text-[11px] text-neutral-400">
-                    <span>{t.asignado?.nombre ?? "Sin asignar"}</span>
-                    {t.fechaLimite && <span>{formatFecha(t.fechaLimite)}</span>}
+                  <p className="text-sm font-bold text-neutral-800 group-hover:text-orange-600 transition-colors leading-tight">{t.titulo}</p>
+                  {t.descripcion && <p className="text-xs text-neutral-500 mt-1.5 line-clamp-2">{t.descripcion}</p>}
+
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-neutral-50 text-[10px] text-neutral-400 font-medium">
+                    <span className="flex items-center gap-1 bg-neutral-50 px-1.5 py-0.5 rounded border border-neutral-100">
+                      <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                      {t.asignado?.nombre ?? "N/A"}
+                    </span>
+                    {t.fechaLimite && (
+                      <span className="flex items-center gap-1">
+                        <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                        {formatFecha(t.fechaLimite)}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -354,9 +374,10 @@ function KanbanBoard({ proyecto, puedeEscribir, onChange }: { proyecto: Proyecto
             {puedeEscribir && (
               <button
                 onClick={() => setTareaModal({ modo: "nueva", estado: col })}
-                className="w-full text-xs font-semibold text-orange-600 hover:text-orange-700 mt-2 py-1.5"
+                className="w-full flex items-center justify-center gap-1.5 text-xs font-bold text-neutral-400 hover:text-orange-600 hover:bg-orange-50 mt-3 py-2 rounded-xl transition-colors border border-transparent hover:border-orange-200/50"
               >
-                + Nueva tarea
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                Añadir tarea
               </button>
             )}
           </div>
@@ -544,32 +565,38 @@ function Documentacion({ proyecto, puedeEscribir, onChange }: { proyecto: Proyec
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-      <div className="bg-white border border-neutral-200 rounded-xl p-3 lg:col-span-1">
-        <div className="flex items-center justify-between px-1 mb-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">Páginas</p>
+      {/* Sidebar Documentación */}
+      <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 lg:col-span-1 shadow-sm">
+        <div className="flex items-center justify-between px-1 mb-4">
+          <p className="text-[11px] font-black uppercase tracking-widest text-neutral-500">Páginas</p>
         </div>
         <div className="space-y-1">
           {paginas.map((p) => (
             <button
               key={p.id}
               onClick={() => setSeleccionadaId(p.id)}
-              className={`w-full text-left text-sm px-3 py-2 rounded-lg truncate ${
-                seleccionadaId === p.id ? "bg-orange-50 text-orange-700 font-semibold" : "text-neutral-600 hover:bg-neutral-100"
+              className={`w-full text-left flex items-center gap-2 text-sm px-3 py-2 rounded-xl truncate transition-all ${
+                seleccionadaId === p.id 
+                  ? "bg-white border border-neutral-200 text-orange-600 font-bold shadow-sm" 
+                  : "text-neutral-600 hover:bg-neutral-200/50 hover:text-neutral-800 border border-transparent"
               }`}
             >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className={seleccionadaId === p.id ? "text-orange-500" : "text-neutral-400"}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               {p.titulo}
             </button>
           ))}
-          {paginas.length === 0 && <p className="text-xs text-neutral-400 px-3 py-2">Sin páginas aún.</p>}
+          {paginas.length === 0 && <p className="text-xs text-neutral-400 px-3 py-2 italic">Sin páginas aún.</p>}
         </div>
         {puedeEscribir && (
-          <button onClick={() => setCreandoPagina(true)} className="w-full text-xs font-semibold text-orange-600 hover:text-orange-700 mt-2 px-3 py-1.5 text-left">
-            + Nueva página
+          <button onClick={() => setCreandoPagina(true)} className="w-full flex items-center gap-2 text-xs font-bold text-orange-600 hover:bg-orange-50 mt-4 px-3 py-2 rounded-xl transition-colors border border-dashed border-orange-200 hover:border-orange-400">
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nueva página
           </button>
         )}
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-xl p-6 lg:col-span-3 min-h-[300px]">
+      {/* Editor Área */}
+      <div className="bg-white border border-neutral-200 rounded-2xl p-8 lg:col-span-3 min-h-[400px] shadow-sm">
         {seleccionada ? (
           <PaginaEditor key={seleccionada.id} pagina={seleccionada} puedeEscribir={puedeEscribir} onChange={onChange} />
         ) : (
