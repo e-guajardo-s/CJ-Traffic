@@ -1,45 +1,95 @@
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext";
 import Login from "./pages/Login";
-import Iot from "./pages/Iot";
-import Firmware from "./pages/Firmware";
+import Inicio from "./pages/Inicio";
+import IotModule from "./pages/iot";
+import FirmwareModule from "./pages/firmware";
+import AdminModule from "./pages/admin";
+import ProyectosModule from "./pages/proyectos";
+import ProyectoDetalle from "./pages/proyectos/ProyectoDetalle";
+import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import ToastContainer from "./components/ToastContainer";
-import type { Vista } from "./types";
+import { esModulo, esSubVistaDe, MODULOS, SUBMODULOS } from "./types";
 
-const TITULOS: Record<Vista, string> = { iot: "Infraestructura IoT", firmware: "Firmware Controladores" };
-
-function Shell() {
-  const { usuario, loading, logout, puede } = useAuth();
-  const [vista, setVista] = useState<Vista>("iot");
-
+function LoginRoute() {
+  const { usuario, loading } = useAuth();
   if (loading) return <p className="text-sm text-neutral-500 p-8">Cargando…</p>;
-  if (!usuario) return <Login />;
+  if (usuario) return <Navigate to="/" replace />;
+  return <Login />;
+}
 
-  const allTabs: Vista[] = ["iot", "firmware"];
-  const tabs = allTabs.filter((v) => puede(v, "LECTURA"));
-  const vistaActiva = tabs.includes(vista) ? vista : tabs[0];
+// Inicio: la misma pantalla de aterrizaje para cualquier rol autenticado, sin
+// depender de la matriz de permisos por módulo (a diferencia de ModuloPage).
+function InicioRoute() {
+  const { usuario, loading, logout } = useAuth();
+  if (loading) return <p className="text-sm text-neutral-500 p-8">Cargando…</p>;
+  if (!usuario) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex h-screen bg-neutral-950 text-neutral-200">
-      <Sidebar tabs={tabs} vista={vistaActiva} onSelect={setVista} usuario={usuario} />
+    <AppShell usuario={usuario} onLogout={logout}>
+      <Inicio />
+    </AppShell>
+  );
+}
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 shrink-0 bg-neutral-900/80 backdrop-blur border-b border-neutral-800 flex items-center justify-between px-6 gap-4">
-          <h1 className="text-lg font-bold text-neutral-100">{vistaActiva ? TITULOS[vistaActiva] : "Sin acceso"}</h1>
-          <button
-            onClick={logout}
-            className="text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 px-3 py-2 rounded-lg"
-          >
-            Cerrar sesión
-          </button>
-        </header>
+function ModuloPage() {
+  const { usuario, loading, logout, puede } = useAuth();
+  const { modulo, submodulo } = useParams();
 
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
-          {!vistaActiva && <p className="text-sm text-neutral-500">Sin módulos visibles para tu rol.</p>}
-          {vistaActiva === "iot" && <Iot />}
-          {vistaActiva === "firmware" && <Firmware />}
-        </main>
+  if (loading) return <p className="text-sm text-neutral-500 p-8">Cargando…</p>;
+  if (!usuario) return <Navigate to="/login" replace />;
+  if (!esModulo(modulo) || !puede(modulo, "LECTURA")) return <Navigate to="/" replace />;
+  if (!esSubVistaDe(modulo, submodulo)) return <Navigate to={`/${modulo}/${SUBMODULOS[modulo][0].id}`} replace />;
+
+  return (
+    <AppShell usuario={usuario} onLogout={logout} sidebar={<Sidebar modulo={modulo} />}>
+      {modulo === "iot" && submodulo === "proyectos" && <ProyectosModule />}
+      {modulo === "iot" && submodulo !== "proyectos" && <IotModule submodulo={submodulo as "resumen" | "directorio" | "inventario"} />}
+      {modulo === "firmware" && <FirmwareModule submodulo={submodulo as "resumen" | "historial"} />}
+      {modulo === "admin" && <AdminModule submodulo={submodulo as "usuarios"} />}
+    </AppShell>
+  );
+}
+
+// Workspace de un proyecto individual (kanban + documentación) — submódulo de
+// Desarrollo (iot), en ruta aparte del patrón genérico /:modulo/:submodulo
+// porque necesita un id de proyecto.
+function ProyectoDetallePage() {
+  const { usuario, loading, logout, puede } = useAuth();
+  if (loading) return <p className="text-sm text-neutral-500 p-8">Cargando…</p>;
+  if (!usuario) return <Navigate to="/login" replace />;
+  if (!puede("iot", "LECTURA")) return <Navigate to="/" replace />;
+
+  return (
+    <AppShell usuario={usuario} onLogout={logout} sidebar={<Sidebar modulo="iot" />}>
+      <ProyectoDetalle />
+    </AppShell>
+  );
+}
+
+function AppShell({
+  usuario,
+  onLogout,
+  sidebar,
+  children,
+}: {
+  usuario: { nombre: string; rol: string };
+  onLogout: () => void;
+  sidebar?: ReactNode;
+  children: ReactNode;
+}) {
+  const { puede } = useAuth();
+  const modulos = MODULOS.filter((m) => puede(m, "LECTURA"));
+
+  return (
+    <div className="flex h-screen flex-col bg-neutral-50 text-neutral-800">
+      <Header modulos={modulos} usuario={usuario} onLogout={onLogout} />
+
+      <div className="flex flex-1 min-h-0">
+        {sidebar}
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
 
       <ToastContainer />
@@ -47,10 +97,25 @@ function Shell() {
   );
 }
 
+function RootRedirectAModulo() {
+  const { modulo } = useParams();
+  if (!esModulo(modulo)) return <Navigate to="/" replace />;
+  return <Navigate to={`/${modulo}/${SUBMODULOS[modulo][0].id}`} replace />;
+}
+
 export default function App() {
   return (
-    <AuthProvider>
-      <Shell />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginRoute />} />
+          <Route path="/" element={<InicioRoute />} />
+          <Route path="/iot/proyectos/:proyectoId" element={<ProyectoDetallePage />} />
+          <Route path="/:modulo" element={<RootRedirectAModulo />} />
+          <Route path="/:modulo/:submodulo" element={<ModuloPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

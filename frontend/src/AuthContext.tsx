@@ -52,9 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
     setToken(data.token);
+    // Se cargan los permisos antes de exponer `usuario`, para que las rutas que
+    // redirigen según `puede()` no lo hagan con una matriz todavía vacía.
+    const permisos = await apiFetch<Permisos>("/me/permissions");
     setStoredUsuario(data.usuario);
+    setPermisos(permisos);
     setUsuario(data.usuario);
-    await cargarPermisos();
   }
 
   function logout() {

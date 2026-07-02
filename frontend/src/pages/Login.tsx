@@ -5,7 +5,7 @@ import { ApiError } from "../api";
 export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("cjtraffic123");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -23,42 +23,63 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-950">
-      <form onSubmit={onSubmit} className="w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-xl p-8 space-y-4">
-        <h1 className="text-lg font-bold text-neutral-100">Intranet CJ Traffic</h1>
-        <p className="text-xs text-neutral-500">Área de Desarrollo — IoT &amp; Firmware</p>
+    <div className="flex min-h-screen w-full" style={{ colorScheme: "light" }}>
+      {/* Panel izquierdo: login sobre fondo blanco corporativo */}
+      <div className="flex w-full items-center justify-center bg-white px-8 py-12 md:w-1/2 lg:w-2/5">
+        <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <img src="/logo.png" alt="CJ Traffic" className="h-16 w-auto" />
+            <div>
+              <h1 className="text-2xl font-bold text-neutral-800">CJ Traffic</h1>
+              <p className="text-xs uppercase tracking-widest text-neutral-500">Intranet Operativa</p>
+            </div>
+          </div>
 
-        <div>
-          <label className="text-xs text-neutral-400 block mb-1.5">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="text-xs text-neutral-400 block mb-1.5">Contraseña</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
-            required
-          />
-        </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-neutral-600">Email de la empresa</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="nombre.apellido@cjtraffic.cl"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-neutral-600">Contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
+            />
+          </div>
 
-        {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="text-xs font-medium text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg px-3 py-2"
-        >
-          {loading ? "Ingresando…" : "Ingresar"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-orange-500 px-3 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/30 transition hover:bg-orange-600 disabled:opacity-50"
+          >
+            {loading ? "Ingresando…" : "Ingresar"}
+          </button>
+
+          <p className="text-center text-[11px] leading-relaxed text-neutral-400">
+            Acceso corporativo CJ Traffic Chile.
+            <br />
+            Contacta a Desarrollo Tecnológico si no recuerdas tu clave.
+          </p>
+        </form>
+      </div>
+
+      {/* Panel derecho: fotografía a pantalla completa, oculto en mobile */}
+      <div
+        className="hidden bg-cover bg-center md:block md:w-1/2 lg:w-3/5"
+        style={{ backgroundImage: "url(/background.jpg)" }}
+      />
     </div>
   );
 }

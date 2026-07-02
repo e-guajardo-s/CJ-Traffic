@@ -4,6 +4,9 @@ import { prisma } from "./prisma";
 import { requireAuth, signToken } from "./auth";
 import { iotRouter } from "./routes/iot";
 import { firmwareRouter } from "./routes/firmware";
+import { adminRouter } from "./routes/admin";
+import { inventarioRouter } from "./routes/inventario";
+import { proyectosRouter } from "./routes/proyectos";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,7 +42,10 @@ app.get("/me/permissions", requireAuth, async (req, res) => {
 });
 
 app.use("/iot", iotRouter);
+app.use("/iot/inventario", inventarioRouter);
 app.use("/firmware", firmwareRouter);
+app.use("/admin", adminRouter);
+app.use("/proyectos", proyectosRouter);
 
 app.listen(PORT, () => {
   console.log(`API escuchando en http://localhost:${PORT}`);

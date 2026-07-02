@@ -65,6 +65,13 @@ Base sobre la que todo se apoya (Próximos Pasos 1 y 4 del informe).
 - Modelo `BitacoraEntry` (§8 informe): registro inmutable de acciones sensibles (autor, acción, entidad, valores antes/después en JSON). El PATCH de gateway ya escribe en bitácora.
 - Frontend: layout completo estilo prototipo — `Sidebar` (logo, nav por módulo con ícono, estado activo `amber-500/10`, chip de usuario con color por rol), header con título dinámico, sistema de `Toast` (pub-sub simple) y `Modal` genérico. Modal de edición de gateway con formulario controlado, guardado async y refresco de tabla. Validado en navegador con Elías (`desarrollo`, ve ambos módulos, puede editar IoT) y confirmado en bitácora (2 entradas registradas: vía curl y vía UI).
 
+**0.4 ✅ Rediseño a modo claro + routing real + Inicio compartido + panel de administración:**
+- Frontend migrado completo a modo claro (paleta corporativa gris/naranjo/rojo del logo). Login rediseñado (dos paneles, foto + formulario).
+- Routing real con `react-router-dom` (`/login`, `/`, `/:modulo`, `/:modulo/:submodulo`) reemplazando el estado en memoria — URL refleja módulo/submódulo activo, back/forward del navegador funciona.
+- **Inicio (`/`):** pantalla compartida para todos los roles autenticados (no depende de RBAC por módulo). Accesos rápidos a BUK (`cj-traffic.buk.cl`) y CJ Smart Traffic (`cjsmart.cl`), enlaces externos reales. Queda espacio reservado para paneles de avisos/estado del software cuando existan las fuentes de datos.
+- Módulo "Desarrollo" (antes "Infraestructura IoT") renombrado — es la etiqueta visible del módulo `iot`, sin tocar la clave interna ni el RBAC.
+- **Panel de administración (`admin`):** nuevo módulo con `GET /admin/roles`, `GET /admin/usuarios`, `POST /admin/usuarios` (bcryptjs + bitácora `usuario.crear`). RBAC: solo `desarrollo`, `gerencia` y `jefatura` tienen `ESCRITURA`; el resto `OCULTO`. Frontend: listado de usuarios + modal de creación (nombre, email, rol, contraseña temporal ≥8 caracteres). Validado con `curl`: creación exitosa, 409 por email duplicado, 403 para rol sin permiso (`firmware`).
+
 1. **Esquema PostgreSQL** (§6), agrupado por dominios:
    - *Identidad:* ✅ `Usuario`, `Rol`, `Modulo`, `RolModuloPermiso` (piloto). Falta extender a Obras/Bodega.
    - *Obras:* `proyectos`, `kanban_tareas`, `finanzas`.

@@ -32,6 +32,10 @@ model Usuario {
   programacionesSubidas Programacion[] @relation("SubidoPor")
   feedbacks             Feedback[]
   bitacora              BitacoraEntry[]
+
+  proyectosResponsable Proyecto[]       @relation("ProyectoResponsable")
+  proyectoPaginas      ProyectoPagina[] @relation("ProyectoPaginaAutor")
+  proyectoTareas       ProyectoTarea[]  @relation("ProyectoTareaAsignado")
 }
 
 // ───────────────────────── RBAC (§7, §9 informe) ─────────────────────────
@@ -74,8 +78,9 @@ model Cruce {
   controlador String // ej. "Auter A5"
   createdAt   DateTime @default(now())
 
-  gateway        GatewayIot?
-  programaciones Programacion[]
+  gateway            GatewayIot?
+  programaciones     Programacion[]
+  unidadesAsignadas  UnidadInventario[]
 }
 
 enum EstadoGateway {
@@ -85,15 +90,19 @@ enum EstadoGateway {
 }
 
 model GatewayIot {
-  id            Int           @id @default(autoincrement())
-  cruce         Cruce         @relation(fields: [cruceId], references: [id])
-  cruceId       Int           @unique
-  modelo        String // ej. "Teltonika TRB256"
-  simApn        String // ej. "Entel M2M"
-  estado        EstadoGateway @default(OFFLINE)
-  ultimaSenalAt DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                  Int           @id @default(autoincrement())
+  cruce               Cruce         @relation(fields: [cruceId], references: [id])
+  cruceId             Int           @unique
+  modelo              String? // ej. "Teltonika TRB256" — opcional: un cruce "sin instalar" puede no tener modelo definido aún
+  simApn              String? // ej. "Entel M2M" — opcional, no se administra desde la UI
+  // Estado de conectividad: manual hasta integrar la API de CJ SMART Traffic (telemetría en tiempo real).
+  estado              EstadoGateway @default(OFFLINE)
+  ultimaSenalAt       DateTime?
+  fechaInstalacion    DateTime?
+  fechaDesinstalacion DateTime?
+  enMantencion        Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 }
 
 enum EstadoProgramacion {
@@ -127,6 +136,120 @@ model Feedback {
   comentario     String
   aprobado       Boolean // true = aprobado, false = rechazado
   createdAt      DateTime     @default(now())
+}
+
+// ───────────────────────── Inventario de Desarrollo ─────────────────────
+// Stock de equipos que administra Desarrollo Tecnológico. Cada item (modelo,
+// ej. "Teltonika TRB256") se compone de unidades individuales con ID propio.
+// Una unidad está "disponible" si cruceId es null, o "en terreno" si está
+// asignada a un cruce — el mismo campo es la única fuente de verdad, así que
+// al desasignar/retirar un gateway (Directorio) la unidad vuelve a disponible.
+
+model CategoriaInventario {
+  id     Int              @id @default(autoincrement())
+  nombre String           @unique
+  items  ItemInventario[]
+}
+
+model ItemInventario {
+  id           Int                 @id @default(autoincrement())
+  nombre       String // ej. "Teltonika TRB256"
+  sku          String? // código SKU / referencia interna del modelo, ej. "TRB256-4G"
+  categoria    CategoriaInventario @relation(fields: [categoriaId], references: [id])
+  categoriaId  Int
+  precio       Int? // precio unitario referencial en CLP (pesos, sin decimales)
+  umbralMinimo Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  unidades UnidadInventario[]
+}
+
+model UnidadInventario {
+  id           Int            @id @default(autoincrement())
+  item         ItemInventario @relation(fields: [itemId], references: [id])
+  itemId       Int
+  codigoUnidad String // ej. "1", "SN-00123" — identifica la unidad física dentro de su item
+  cruce        Cruce?         @relation(fields: [cruceId], references: [id])
+  // Un cruce puede tener varias unidades asignadas (ej. varios relés). Por eso
+  // cruceId NO es único.
+  cruceId      Int?
+  // Ubicación física (bodega/estante) cuando la unidad NO está en un cruce.
+  // Es mutuamente excluyente con cruceId: si está en terreno, ubicacionFisica es null.
+  ubicacionFisica String?
+  // Baja: la unidad se descompuso / se retiró de circulación. Se conserva el
+  // registro con una nota justificatoria. Una unidad dada de baja no cuenta como
+  // stock ni puede asignarse; al darla de baja se libera cruce y ubicación física.
+  dadaDeBaja   Boolean        @default(false)
+  notaBaja     String?
+  createdAt    DateTime       @default(now())
+
+  @@unique([itemId, codigoUnidad])
+}
+
+// ───────────────────────── Proyectos (Área de Desarrollo) ───────────────
+// Gestión de proyectos tecnológicos/ingeniería del área: documentación tipo
+// Notion (varias páginas por proyecto) + tablero Kanban de tareas (columnas fijas).
+
+enum EstadoProyecto {
+  NO_INICIADO
+  EN_PROGRESO
+  PAUSADO
+  COMPLETADO
+  CANCELADO
+}
+
+model Proyecto {
+  id            Int            @id @default(autoincrement())
+  nombre        String
+  descripcion   String?
+  estado        EstadoProyecto @default(NO_INICIADO)
+  fechaInicio   DateTime?
+  fechaFin      DateTime?
+  responsable   Usuario?       @relation("ProyectoResponsable", fields: [responsableId], references: [id])
+  responsableId Int?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  paginas ProyectoPagina[]
+  tareas  ProyectoTarea[]
+}
+
+// Documentación: varias páginas de texto (markdown) por proyecto, ordenables.
+model ProyectoPagina {
+  id         Int      @id @default(autoincrement())
+  proyecto   Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  proyectoId Int
+  titulo     String
+  contenido  String   @default("") // markdown
+  orden      Int      @default(0)
+  autor      Usuario  @relation("ProyectoPaginaAutor", fields: [autorId], references: [id])
+  autorId    Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Kanban: columnas fijas (mismas para todos los proyectos).
+enum EstadoTarea {
+  POR_HACER
+  EN_PROGRESO
+  EN_REVISION
+  HECHO
+}
+
+model ProyectoTarea {
+  id          Int         @id @default(autoincrement())
+  proyecto    Proyecto    @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  proyectoId  Int
+  titulo      String
+  descripcion String?
+  estado      EstadoTarea @default(POR_HACER)
+  orden       Int         @default(0) // orden dentro de su columna, para drag & drop
+  asignado    Usuario?    @relation("ProyectoTareaAsignado", fields: [asignadoId], references: [id])
+  asignadoId  Int?
+  fechaLimite DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 // ───────────────────────── Auditoría (§8 informe) ─────────────────────────
