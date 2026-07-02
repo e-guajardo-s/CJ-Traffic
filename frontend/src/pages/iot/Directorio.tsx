@@ -3,9 +3,10 @@ import { apiFetch, ApiError } from "../../api";
 import { useAuth } from "../../AuthContext";
 import Modal from "../../components/Modal";
 import { showToast } from "../../components/toast";
-import { categoriaCiclo, CATEGORIA_LABEL, type CategoriaCiclo, type Cruce } from "./types";
+import { categoriaCiclo, CATEGORIA_LABEL, ESTADO_GATEWAY_LABEL, type CategoriaCiclo, type Cruce, type EstadoGateway } from "./types";
 import GatewayCampos, { gatewayCamposIniciales, type GatewayCamposValue } from "./GatewayCampos";
 import NuevoCruceModal from "./NuevoCruceModal";
+import MantencionesModal from "./MantencionesModal";
 import type { ItemInventario } from "./inventarioTypes";
 import { disponibles } from "./inventarioTypes";
 
@@ -25,6 +26,16 @@ const BADGE_COLOR: Record<CategoriaCiclo, string> = {
 
 const CATEGORIAS: CategoriaCiclo[] = ["verde", "gris", "sinInstalar", "desinstalado"];
 
+const ESTADO_BADGE: Record<EstadoGateway, { dot: string; chip: string }> = {
+  ONLINE: { dot: "bg-emerald-500", chip: "bg-emerald-100 text-emerald-700" },
+  OFFLINE: { dot: "bg-red-500", chip: "bg-red-100 text-red-700" },
+  DEGRADADO: { dot: "bg-amber-500", chip: "bg-amber-100 text-amber-700" },
+};
+
+const ESTADOS_GATEWAY: EstadoGateway[] = ["ONLINE", "OFFLINE", "DEGRADADO"];
+
+type ColumnaOrden = "codigo" | "ubicacion" | "instalacion";
+
 function formatFecha(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("es-CL");
@@ -34,19 +45,50 @@ export default function IotDirectorio({ cruces, onChange }: { cruces: Cruce[]; o
   const { puede } = useAuth();
   const [editando, setEditando] = useState<Cruce | null>(null);
   const [eliminando, setEliminando] = useState<Cruce | null>(null);
+  const [verMantenciones, setVerMantenciones] = useState<Cruce | null>(null);
   const [creando, setCreando] = useState(false);
   const [filtro, setFiltro] = useState<CategoriaCiclo | "todos">("todos");
+  const [filtroEstado, setFiltroEstado] = useState<EstadoGateway | "todos">("todos");
+  const [filtroControlador, setFiltroControlador] = useState<string>("todos");
   const [busqueda, setBusqueda] = useState("");
+  const [orden, setOrden] = useState<{ col: ColumnaOrden; asc: boolean } | null>(null);
   const [exportando, setExportando] = useState(false);
+
+  const controladores = useMemo(
+    () => Array.from(new Set(cruces.map((c) => c.controlador).filter(Boolean))).sort(),
+    [cruces],
+  );
 
   const filtrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
-    return cruces.filter((c) => {
+    const resultado = cruces.filter((c) => {
       if (filtro !== "todos" && categoriaCiclo(c.gateway) !== filtro) return false;
+      if (filtroEstado !== "todos" && c.gateway?.estado !== filtroEstado) return false;
+      if (filtroControlador !== "todos" && c.controlador !== filtroControlador) return false;
       if (texto && !c.codigo.toLowerCase().includes(texto) && !c.ubicacion.toLowerCase().includes(texto)) return false;
       return true;
     });
-  }, [cruces, filtro, busqueda]);
+
+    if (orden) {
+      const dir = orden.asc ? 1 : -1;
+      resultado.sort((a, b) => {
+        if (orden.col === "codigo") return a.codigo.localeCompare(b.codigo, undefined, { numeric: true }) * dir;
+        if (orden.col === "ubicacion") return a.ubicacion.localeCompare(b.ubicacion) * dir;
+        // instalacion: nulls al final independiente de la dirección
+        const fa = a.gateway?.fechaInstalacion;
+        const fb = b.gateway?.fechaInstalacion;
+        if (!fa && !fb) return 0;
+        if (!fa) return 1;
+        if (!fb) return -1;
+        return (new Date(fa).getTime() - new Date(fb).getTime()) * dir;
+      });
+    }
+    return resultado;
+  }, [cruces, filtro, filtroEstado, filtroControlador, busqueda, orden]);
+
+  function toggleOrden(col: ColumnaOrden) {
+    setOrden((o) => (o?.col === col ? (o.asc ? { col, asc: false } : null) : { col, asc: true }));
+  }
 
   const puedeEscribir = puede("iot", "ESCRITURA");
 
@@ -91,26 +133,63 @@ export default function IotDirectorio({ cruces, onChange }: { cruces: Cruce[]; o
       </div>
 
       <div className="flex items-center gap-2 my-4 flex-wrap">
-        <input
-          type="text"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por código o ubicación…"
-          className="bg-white border border-neutral-300 rounded-lg px-3 py-1.5 text-xs text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 w-64"
-        />
-        <span className="text-xs font-semibold text-neutral-500 ml-2">Filtrar por estado:</span>
+        <div className="relative">
+          <svg
+            className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por código o ubicación…"
+            className="bg-white border border-neutral-300 rounded-lg pl-8 pr-3 py-1.5 text-xs text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 w-64"
+          />
+        </div>
         <select
           value={filtro}
           onChange={(e) => setFiltro(e.target.value as CategoriaCiclo | "todos")}
           className="bg-white border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          title="Filtrar por categoría de ciclo de vida"
         >
-          <option value="todos">Todos</option>
+          <option value="todos">Categoría: todas</option>
           {CATEGORIAS.map((cat) => (
             <option key={cat} value={cat}>
               {CATEGORIA_LABEL[cat]}
             </option>
           ))}
         </select>
+        <select
+          value={filtroEstado}
+          onChange={(e) => setFiltroEstado(e.target.value as EstadoGateway | "todos")}
+          className="bg-white border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          title="Filtrar por estado de conectividad"
+        >
+          <option value="todos">Conectividad: todas</option>
+          {ESTADOS_GATEWAY.map((e) => (
+            <option key={e} value={e}>
+              {ESTADO_GATEWAY_LABEL[e]}
+            </option>
+          ))}
+        </select>
+        {controladores.length > 1 && (
+          <select
+            value={filtroControlador}
+            onChange={(e) => setFiltroControlador(e.target.value)}
+            className="bg-white border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            title="Filtrar por controlador"
+          >
+            <option value="todos">Controlador: todos</option>
+            {controladores.map((ctrl) => (
+              <option key={ctrl} value={ctrl}>
+                {ctrl}
+              </option>
+            ))}
+          </select>
+        )}
         <span className="text-[11px] text-neutral-400">
           {filtrados.length} de {cruces.length} cruces
         </span>
@@ -124,43 +203,74 @@ export default function IotDirectorio({ cruces, onChange }: { cruces: Cruce[]; o
             <col className="w-36" />
             <col className="w-28" />
             <col className="w-28" />
-            <col className="w-24" />
+            <col className="w-28" />
             <col className="w-28" />
             <col className="w-32" />
-            {puedeEscribir && <col className="w-36" />}
+            <col className={puedeEscribir ? "w-48" : "w-28"} />
           </colgroup>
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wider text-neutral-400 border-b border-neutral-200">
-              <th className="py-3 pr-4">ID Cruce</th>
-              <th className="py-3 pr-4">Ubicación</th>
+              <ThOrdenable label="ID Cruce" col="codigo" orden={orden} onToggle={toggleOrden} />
+              <ThOrdenable label="Ubicación" col="ubicacion" orden={orden} onToggle={toggleOrden} />
               <th className="py-3 pr-4">Modelo Gateway</th>
-              <th className="py-3 pr-4">Instalación</th>
+              <ThOrdenable label="Instalación" col="instalacion" orden={orden} onToggle={toggleOrden} />
               <th className="py-3 pr-4">Desinstalación</th>
-              <th className="py-3 pr-4">Mantención</th>
-              <th className="py-3 pr-4">Estado actual</th>
+              <th className="py-3 pr-4">Mantenciones</th>
+              <th className="py-3 pr-4">Conectividad</th>
               <th className="py-3 pr-4">Categoría</th>
-              {puedeEscribir && <th className="py-3">Acciones</th>}
+              <th className="py-3">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
+            {filtrados.length === 0 && (
+              <tr>
+                <td colSpan={9} className="py-12 text-center">
+                  <p className="text-sm text-neutral-500">
+                    {cruces.length === 0 ? "Aún no hay cruces registrados en el directorio." : "Ningún cruce coincide con la búsqueda o los filtros."}
+                  </p>
+                  {cruces.length === 0 && puedeEscribir && (
+                    <button onClick={() => setCreando(true)} className="mt-3 text-xs font-semibold text-orange-600 hover:text-orange-700">
+                      + Registrar el primer cruce
+                    </button>
+                  )}
+                </td>
+              </tr>
+            )}
             {filtrados.map((c) => {
               const cat = categoriaCiclo(c.gateway);
+              const estado = c.gateway?.estado;
+              const nMantenciones = c.gateway?.mantenciones?.length ?? 0;
               return (
-                <tr key={c.id} className={FILA_COLOR[cat]}>
+                <tr key={c.id} className={`transition-colors ${FILA_COLOR[cat]}`}>
                   <td className="py-3 pr-4 font-mono font-bold text-orange-600 truncate">{c.codigo}</td>
                   <td className="py-3 pr-4 text-neutral-700 truncate">{c.ubicacion}</td>
                   <td className="py-3 pr-4 font-mono text-violet-600 truncate">{c.gateway?.modelo ?? "—"}</td>
                   <td className="py-3 pr-4 text-neutral-600">{formatFecha(c.gateway?.fechaInstalacion ?? null)}</td>
                   <td className="py-3 pr-4 text-neutral-600">{formatFecha(c.gateway?.fechaDesinstalacion ?? null)}</td>
-                  <td className="py-3 pr-4 text-neutral-600">{c.gateway?.enMantencion ? "Sí" : "No"}</td>
                   <td className="py-3 pr-4">
-                    <span className="text-xs text-neutral-400 italic">Esperando API</span>
+                    <button
+                      onClick={() => setVerMantenciones(c)}
+                      className="text-[11px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2.5 py-1 rounded-md"
+                      title="Ver historial de mantenciones"
+                    >
+                      {nMantenciones > 0 ? `${nMantenciones} registro${nMantenciones !== 1 ? "s" : ""}` : "Historial"}
+                    </button>
+                  </td>
+                  <td className="py-3 pr-4">
+                    {estado ? (
+                      <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${ESTADO_BADGE[estado].chip}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${ESTADO_BADGE[estado].dot}`} />
+                        {ESTADO_GATEWAY_LABEL[estado]}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-neutral-400">—</span>
+                    )}
                   </td>
                   <td className="py-3 pr-4">
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${BADGE_COLOR[cat]}`}>{CATEGORIA_LABEL[cat]}</span>
                   </td>
-                  {puedeEscribir && (
-                    <td className="py-3">
+                  <td className="py-3">
+                    {puedeEscribir ? (
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setEditando(c)}
@@ -175,8 +285,10 @@ export default function IotDirectorio({ cruces, onChange }: { cruces: Cruce[]; o
                           Eliminar
                         </button>
                       </div>
-                    </td>
-                  )}
+                    ) : (
+                      <span className="text-xs text-neutral-300">—</span>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -215,7 +327,37 @@ export default function IotDirectorio({ cruces, onChange }: { cruces: Cruce[]; o
           }}
         />
       )}
+
+      {verMantenciones && (
+        <MantencionesModal cruce={verMantenciones} onClose={() => setVerMantenciones(null)} onChange={onChange} />
+      )}
     </div>
+  );
+}
+
+function ThOrdenable({
+  label,
+  col,
+  orden,
+  onToggle,
+}: {
+  label: string;
+  col: ColumnaOrden;
+  orden: { col: ColumnaOrden; asc: boolean } | null;
+  onToggle: (col: ColumnaOrden) => void;
+}) {
+  const activo = orden?.col === col;
+  return (
+    <th className="py-3 pr-4">
+      <button
+        onClick={() => onToggle(col)}
+        className={`inline-flex items-center gap-1 uppercase tracking-wider hover:text-neutral-600 transition-colors ${activo ? "text-orange-600" : ""}`}
+        title={`Ordenar por ${label.toLowerCase()}`}
+      >
+        {label}
+        <span className="text-[9px] leading-none">{activo ? (orden!.asc ? "▲" : "▼") : "↕"}</span>
+      </button>
+    </th>
   );
 }
 
@@ -234,6 +376,7 @@ function EditarGatewayModal({ cruce, onClose, onSaved }: { cruce: Cruce; onClose
           ubicacion,
           controlador,
           modelo: gateway.modelo || null,
+          estado: gateway.estado,
           fechaInstalacion: gateway.fechaInstalacion || null,
           fechaDesinstalacion: gateway.fechaDesinstalacion || null,
           enMantencion: gateway.enMantencion,

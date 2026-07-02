@@ -31,6 +31,21 @@ export default function Inventario({
   const [editandoItem, setEditandoItem] = useState<ItemInventario | null>(null);
   const [eliminandoItem, setEliminandoItem] = useState<ItemInventario | null>(null);
   const [gestionandoCategorias, setGestionandoCategorias] = useState(false);
+  const [exportando, setExportando] = useState(false);
+  // Señal de colapso global: cada click propaga el nuevo estado a todos los ItemCard.
+  const [colapsoGlobal, setColapsoGlobal] = useState<{ colapsado: boolean; v: number } | null>(null);
+
+  async function exportar() {
+    setExportando(true);
+    try {
+      const { exportarInventarioExcel } = await import("./inventarioExcel");
+      await exportarInventarioExcel(filtrados);
+    } catch {
+      showToast("No se pudo generar el archivo Excel", "error");
+    } finally {
+      setExportando(false);
+    }
+  }
 
   const filtrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -60,22 +75,38 @@ export default function Inventario({
               Cada equipo tiene unidades individuales con ID propio. Una unidad está disponible o asignada a un cruce específico.
             </p>
           </div>
-          {puedeEscribir && (
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setGestionandoCategorias(true)}
-                className="text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-700 px-3 py-2 rounded-lg"
-              >
-                Categorías
-              </button>
-              <button
-                onClick={() => setCreandoItem(true)}
-                className="text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg"
-              >
-                + Nuevo Item
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setColapsoGlobal((s) => ({ colapsado: !(s?.colapsado ?? false), v: (s?.v ?? 0) + 1 }))}
+              className="text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-700 px-3 py-2 rounded-lg"
+              title={colapsoGlobal?.colapsado ? "Expandir todos los items" : "Colapsar todos los items"}
+            >
+              {colapsoGlobal?.colapsado ? "▾ Expandir todo" : "▸ Colapsar todo"}
+            </button>
+            <button
+              onClick={exportar}
+              disabled={exportando}
+              className="text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 disabled:opacity-50 border border-neutral-200 text-neutral-700 px-3 py-2 rounded-lg"
+            >
+              {exportando ? "Generando…" : "Exportar a Excel"}
+            </button>
+            {puedeEscribir && (
+              <>
+                <button
+                  onClick={() => setGestionandoCategorias(true)}
+                  className="text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-700 px-3 py-2 rounded-lg"
+                >
+                  Categorías
+                </button>
+                <button
+                  onClick={() => setCreandoItem(true)}
+                  className="text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg"
+                >
+                  + Nuevo Item
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
@@ -134,11 +165,24 @@ export default function Inventario({
           key={item.id}
           item={item}
           puedeEscribir={puedeEscribir}
+          colapsoGlobal={colapsoGlobal}
           onEditar={() => setEditandoItem(item)}
           onEliminar={() => setEliminandoItem(item)}
           onChange={onChange}
         />
       ))}
+      {filtrados.length === 0 && (
+        <div className="bg-white border border-dashed border-neutral-300 rounded-xl p-10 text-center">
+          <p className="text-sm text-neutral-500">
+            {items.length === 0 ? "El inventario está vacío." : "Ningún item coincide con la búsqueda o el filtro."}
+          </p>
+          {items.length === 0 && puedeEscribir && (
+            <button onClick={() => setCreandoItem(true)} className="mt-3 text-xs font-semibold text-orange-600 hover:text-orange-700">
+              + Crear el primer item
+            </button>
+          )}
+        </div>
+      )}
 
       {creandoItem && (
         <ItemModal
@@ -181,12 +225,14 @@ export default function Inventario({
 function ItemCard({
   item,
   puedeEscribir,
+  colapsoGlobal,
   onEditar,
   onEliminar,
   onChange,
 }: {
   item: ItemInventario;
   puedeEscribir: boolean;
+  colapsoGlobal: { colapsado: boolean; v: number } | null;
   onEditar: () => void;
   onEliminar: () => void;
   onChange: () => void;
@@ -195,6 +241,11 @@ function ItemCard({
   const [asignando, setAsignando] = useState<UnidadInventario | null>(null);
   const [dandoBaja, setDandoBaja] = useState<UnidadInventario | null>(null);
   const [colapsado, setColapsado] = useState(false);
+
+  // El botón "Colapsar/Expandir todo" del encabezado manda sobre el estado local.
+  useEffect(() => {
+    if (colapsoGlobal) setColapsado(colapsoGlobal.colapsado);
+  }, [colapsoGlobal]);
   const [ordenPor, setOrdenPor] = useState<"unidad" | "estado" | "cruce">("unidad");
   const [ordenDir, setOrdenDir] = useState<"asc" | "desc">("asc");
   const [seleccion, setSeleccion] = useState<Set<number>>(new Set());
@@ -282,9 +333,17 @@ function ItemCard({
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap mt-2 ml-7">
-            <span className="text-sm font-bold text-neutral-800 bg-neutral-100 border border-neutral-200 px-2.5 py-1 rounded-lg">
-              {formatCLP(item.precio)}
+            <span className="text-sm font-bold text-neutral-800 bg-neutral-100 border border-neutral-200 px-2.5 py-1 rounded-lg" title="Precio unitario">
+              {formatCLP(item.precio)} <span className="text-[10px] font-semibold text-neutral-400">c/u</span>
             </span>
+            {item.precio != null && activas(item).length > 0 && (
+              <span
+                className="text-sm font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg"
+                title={`${activas(item).length} unidad(es) activa(s) × ${formatCLP(item.precio)}`}
+              >
+                {formatCLP(item.precio * activas(item).length)} <span className="text-[10px] font-semibold text-emerald-600">total</span>
+              </span>
+            )}
             <span className="text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-lg">
               {item.categoria.nombre}
             </span>

@@ -4,6 +4,7 @@ import type { SubVistaFirmware } from "../../types";
 import type { Programacion } from "./types";
 import FirmwareResumen from "./Resumen";
 import FirmwareHistorial from "./Historial";
+import CargandoTabla from "../../components/CargandoTabla";
 
 export default function FirmwareModule({ submodulo }: { submodulo: SubVistaFirmware }) {
   const [programaciones, setProgramaciones] = useState<Programacion[] | null>(null);
@@ -16,7 +17,7 @@ export default function FirmwareModule({ submodulo }: { submodulo: SubVistaFirmw
   }, []);
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
-  if (!programaciones) return <p className="text-sm text-neutral-500">Cargando…</p>;
+  if (!programaciones) return <CargandoTabla />;
 
   if (submodulo === "historial") return <FirmwareHistorial programaciones={programaciones} />;
   return <FirmwareResumen programaciones={programaciones} />;

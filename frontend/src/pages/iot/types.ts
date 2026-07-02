@@ -1,5 +1,30 @@
 export type EstadoGateway = "ONLINE" | "OFFLINE" | "DEGRADADO";
 
+export const ESTADO_GATEWAY_LABEL: Record<EstadoGateway, string> = {
+  ONLINE: "Online",
+  OFFLINE: "Offline",
+  DEGRADADO: "Degradado",
+};
+
+export type TipoMantencion = "PREVENTIVA" | "CORRECTIVA" | "INSTALACION" | "RETIRO" | "OTRA";
+
+export const TIPO_MANTENCION_LABEL: Record<TipoMantencion, string> = {
+  PREVENTIVA: "Preventiva",
+  CORRECTIVA: "Correctiva",
+  INSTALACION: "Instalación",
+  RETIRO: "Retiro",
+  OTRA: "Otra",
+};
+
+export interface Mantencion {
+  id: number;
+  fecha: string;
+  tipo: TipoMantencion;
+  tecnico: string | null;
+  notas: string | null;
+  createdAt: string;
+}
+
 export interface Gateway {
   modelo: string | null;
   simApn: string | null;
@@ -7,6 +32,7 @@ export interface Gateway {
   fechaInstalacion: string | null;
   fechaDesinstalacion: string | null;
   enMantencion: boolean;
+  mantenciones?: Mantencion[];
 }
 
 export interface UnidadAsignada {

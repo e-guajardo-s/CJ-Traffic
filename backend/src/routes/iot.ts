@@ -30,10 +30,78 @@ function compararNatural(a: string, b: string): number {
 iotRouter.get("/gateways", requireAuth, requireModulo("iot", "LECTURA"), async (_req, res) => {
   const cruces = await prisma.cruce.findMany({
     where: { gateway: { isNot: null } },
-    include: { gateway: true, unidadesAsignadas: { include: { item: true } } },
+    include: {
+      gateway: { include: { mantenciones: { orderBy: { fecha: "desc" } } } },
+      unidadesAsignadas: { include: { item: true } },
+    },
   });
   cruces.sort((a, b) => compararNatural(a.codigo, b.codigo));
   res.json(cruces);
+});
+
+// Dashboard del área de Desarrollo: consolida en una sola llamada el estado de
+// gateways, alertas operativas, actividad reciente y trabajo pendiente.
+iotRouter.get("/dashboard", requireAuth, requireModulo("iot", "LECTURA"), async (_req, res) => {
+  const hoy = new Date();
+
+  const [gateways, actividad, tareasPendientes, items, proyectos] = await Promise.all([
+    prisma.gatewayIot.findMany({
+      include: { cruce: { select: { id: true, codigo: true, ubicacion: true } } },
+    }),
+    prisma.bitacoraEntry.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: { autor: { select: { id: true, nombre: true } } },
+    }),
+    prisma.proyectoTarea.findMany({
+      where: { estado: { not: "HECHO" }, proyecto: { estado: { in: ["NO_INICIADO", "EN_PROGRESO"] } } },
+      include: {
+        proyecto: { select: { id: true, nombre: true } },
+        asignado: { select: { id: true, nombre: true } },
+      },
+      orderBy: [{ fechaLimite: { sort: "asc", nulls: "last" } }, { orden: "asc" }],
+      take: 20,
+    }),
+    prisma.itemInventario.findMany({ include: { unidades: true } }),
+    prisma.proyecto.findMany({ select: { estado: true } }),
+  ]);
+
+  const conteoGateways = { total: gateways.length, online: 0, offline: 0, degradado: 0 };
+  const gatewaysConProblemas: { cruceId: number; codigo: string; ubicacion: string; estado: string }[] = [];
+  for (const gw of gateways) {
+    if (gw.estado === "ONLINE") conteoGateways.online++;
+    else if (gw.estado === "OFFLINE") conteoGateways.offline++;
+    else conteoGateways.degradado++;
+    if (gw.estado !== "ONLINE") {
+      gatewaysConProblemas.push({ cruceId: gw.cruce.id, codigo: gw.cruce.codigo, ubicacion: gw.cruce.ubicacion, estado: gw.estado });
+    }
+  }
+
+  // Stock bajo: unidades en circulación (no de baja, no asignadas) bajo el umbral mínimo.
+  const stockBajo = items
+    .map((i) => {
+      const disponibles = i.unidades.filter((u) => !u.dadaDeBaja && !u.cruceId).length;
+      return { id: i.id, nombre: i.nombre, disponibles, umbralMinimo: i.umbralMinimo };
+    })
+    .filter((i) => i.umbralMinimo > 0 && i.disponibles <= i.umbralMinimo);
+
+  const tareasVencidas = tareasPendientes.filter((t) => t.fechaLimite && new Date(t.fechaLimite) < hoy);
+
+  res.json({
+    gateways: conteoGateways,
+    gatewaysConProblemas,
+    actividad,
+    tareas: {
+      pendientes: tareasPendientes.length,
+      vencidas: tareasVencidas.length,
+      proximas: tareasPendientes.slice(0, 6),
+    },
+    stockBajo,
+    proyectos: {
+      total: proyectos.length,
+      enProgreso: proyectos.filter((p) => p.estado === "EN_PROGRESO").length,
+    },
+  });
 });
 
 const ESTADOS_VALIDOS = ["ONLINE", "OFFLINE", "DEGRADADO"] as const;
@@ -86,6 +154,75 @@ iotRouter.patch("/gateways/:cruceId", requireAuth, requireModulo("iot", "ESCRITU
   });
 
   res.json({ ...cruce, gateway: actualizado });
+});
+
+// ───────────────────────── Historial de mantenciones ─────────────────────────
+
+const TIPOS_MANTENCION = ["PREVENTIVA", "CORRECTIVA", "INSTALACION", "RETIRO", "OTRA"] as const;
+
+iotRouter.get("/gateways/:cruceId/mantenciones", requireAuth, requireModulo("iot", "LECTURA"), async (req, res) => {
+  const cruceId = Number(req.params.cruceId);
+  const gateway = await prisma.gatewayIot.findUnique({ where: { cruceId } });
+  if (!gateway) return res.status(404).json({ error: "Gateway no encontrado para ese cruce" });
+
+  const mantenciones = await prisma.mantencionGateway.findMany({
+    where: { gatewayId: gateway.id },
+    orderBy: { fecha: "desc" },
+  });
+  res.json(mantenciones);
+});
+
+iotRouter.post("/gateways/:cruceId/mantenciones", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
+  const cruceId = Number(req.params.cruceId);
+  const { fecha, tipo, tecnico, notas } = req.body ?? {};
+
+  if (!fecha) return res.status(400).json({ error: "fecha es requerida" });
+  const fechaParsed = parseFecha(fecha);
+  if (!fechaParsed) return res.status(400).json({ error: "fecha inválida" });
+  if (tipo !== undefined && !TIPOS_MANTENCION.includes(tipo)) {
+    return res.status(400).json({ error: `tipo debe ser uno de: ${TIPOS_MANTENCION.join(", ")}` });
+  }
+
+  const gateway = await prisma.gatewayIot.findUnique({ where: { cruceId }, include: { cruce: true } });
+  if (!gateway) return res.status(404).json({ error: "Gateway no encontrado para ese cruce" });
+
+  const mantencion = await prisma.mantencionGateway.create({
+    data: {
+      gatewayId: gateway.id,
+      fecha: fechaParsed,
+      tipo: tipo ?? "PREVENTIVA",
+      tecnico: tecnico?.trim() || null,
+      notas: notas?.trim() || null,
+    },
+  });
+
+  await registrarBitacora({
+    autorId: req.user!.sub,
+    accion: "gateway.mantencion.registrar",
+    entidad: "MantencionGateway",
+    entidadId: mantencion.id,
+    detalle: { cruce: gateway.cruce.codigo, tipo: mantencion.tipo, fecha: mantencion.fecha },
+  });
+
+  res.status(201).json(mantencion);
+});
+
+iotRouter.delete("/mantenciones/:id", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
+  const id = Number(req.params.id);
+  const mantencion = await prisma.mantencionGateway.findUnique({ where: { id } });
+  if (!mantencion) return res.status(404).json({ error: "Mantención no encontrada" });
+
+  await prisma.mantencionGateway.delete({ where: { id } });
+
+  await registrarBitacora({
+    autorId: req.user!.sub,
+    accion: "gateway.mantencion.eliminar",
+    entidad: "MantencionGateway",
+    entidadId: id,
+    detalle: { gatewayId: mantencion.gatewayId, tipo: mantencion.tipo, fecha: mantencion.fecha },
+  });
+
+  res.status(204).send();
 });
 
 iotRouter.post("/cruces", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {

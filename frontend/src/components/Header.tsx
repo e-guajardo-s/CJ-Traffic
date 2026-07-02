@@ -1,7 +1,46 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import type { Modulo } from "../types";
 import { MODULO_LABEL } from "../types";
+
+// Tema persistente: localStorage manda; si no hay preferencia guardada se usa
+// la del sistema operativo.
+function temaInicial(): "light" | "dark" {
+  const guardado = localStorage.getItem("tema");
+  if (guardado === "dark" || guardado === "light") return guardado;
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function BotonTema() {
+  const [tema, setTema] = useState<"light" | "dark">(temaInicial);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", tema === "dark");
+    localStorage.setItem("tema", tema);
+  }, [tema]);
+
+  return (
+    <button
+      onClick={() => setTema((t) => (t === "dark" ? "light" : "dark"))}
+      className="w-9 h-9 flex items-center justify-center rounded-lg bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-600 transition"
+      title={tema === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      aria-label="Alternar modo oscuro"
+    >
+      {tema === "dark" ? (
+        // Sol
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+        </svg>
+      ) : (
+        // Luna
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 const ICONS: Record<Modulo, ReactNode> = {
   iot: (
@@ -34,11 +73,11 @@ const ROL_COLOR: Record<string, string> = {
   gerencia: "bg-emerald-600",
   jefatura: "bg-amber-600",
   coordinador: "bg-sky-600",
-  bodega: "bg-orange-600",
+  bodega: "bg-orange-500",
   contabilidad: "bg-teal-600",
   desarrollo: "bg-violet-600",
   firmware: "bg-pink-600",
-  tecnico: "bg-neutral-600",
+  tecnico: "bg-zinc-600",
 };
 
 function initials(nombre: string) {
@@ -91,6 +130,7 @@ export default function Header({
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
+        <BotonTema />
         <div className="flex items-center gap-2.5">
           <div className={`w-8 h-8 rounded-full ${ROL_COLOR[usuario.rol] ?? "bg-neutral-500"} flex items-center justify-center text-[11px] font-bold text-white`}>
             {initials(usuario.nombre)}

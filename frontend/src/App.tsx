@@ -8,6 +8,8 @@ import FirmwareModule from "./pages/firmware";
 import AdminModule from "./pages/admin";
 import ProyectosModule from "./pages/proyectos";
 import ProyectoDetalle from "./pages/proyectos/ProyectoDetalle";
+import TecnologiasModule from "./pages/iot/Tecnologias";
+import GlosarioModule from "./pages/iot/Glosario";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import ToastContainer from "./components/ToastContainer";
@@ -46,7 +48,11 @@ function ModuloPage() {
   return (
     <AppShell usuario={usuario} onLogout={logout} sidebar={<Sidebar modulo={modulo} />}>
       {modulo === "iot" && submodulo === "proyectos" && <ProyectosModule />}
-      {modulo === "iot" && submodulo !== "proyectos" && <IotModule submodulo={submodulo as "resumen" | "directorio" | "inventario"} />}
+      {modulo === "iot" && submodulo === "tecnologias" && <TecnologiasModule />}
+      {modulo === "iot" && submodulo === "glosario" && <GlosarioModule />}
+      {modulo === "iot" && !["proyectos", "tecnologias", "glosario"].includes(submodulo) && (
+        <IotModule submodulo={submodulo as "resumen" | "directorio" | "inventario"} />
+      )}
       {modulo === "firmware" && <FirmwareModule submodulo={submodulo as "resumen" | "historial"} />}
       {modulo === "admin" && <AdminModule submodulo={submodulo as "usuarios"} />}
     </AppShell>

@@ -1,4 +1,4 @@
-import type { EstadoGateway } from "./types";
+import { ESTADO_GATEWAY_LABEL, type EstadoGateway } from "./types";
 
 export interface GatewayCamposValue {
   modelo: string;
@@ -43,9 +43,18 @@ export default function GatewayCampos({
         <input value={value.modelo} onChange={(e) => onChange({ modelo: e.target.value })} className={inputClass} />
       </div>
 
-      <p className="text-xs text-neutral-400 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2">
-        Estado actual: esperando integración con API de CJ Smart Traffic.
-      </p>
+      <div>
+        <label className="text-xs text-neutral-500 block mb-1.5">
+          Estado de conectividad <span className="text-neutral-400 normal-case">(manual hasta integrar la API de CJ Smart Traffic)</span>
+        </label>
+        <select value={value.estado} onChange={(e) => onChange({ estado: e.target.value as EstadoGateway })} className={inputClass}>
+          {(Object.keys(ESTADO_GATEWAY_LABEL) as EstadoGateway[]).map((estado) => (
+            <option key={estado} value={estado}>
+              {ESTADO_GATEWAY_LABEL[estado]}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>

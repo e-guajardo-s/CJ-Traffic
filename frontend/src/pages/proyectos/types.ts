@@ -30,6 +30,32 @@ export interface ProyectoPagina {
   updatedAt: string;
 }
 
+export interface Tecnologia {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  categoria: string;
+  archivos: ArchivoTecnico[];
+  fechaCreacion: string;
+}
+
+export interface ComponenteStack {
+  id: number;
+  capa: 'HARDWARE' | 'RED' | 'PROCESAMIENTO' | 'VISUALIZACION';
+  nombre: string;
+  detalles: string | null;
+  proyectoId: number;
+}
+
+export interface ArchivoTecnico {
+  id: number;
+  nombre: string;
+  url: string;
+  extension: string;
+  tecnologiaId: number;
+  fechaSubida: string;
+}
+
 export interface Proyecto {
   id: number;
   nombre: string;
@@ -46,6 +72,8 @@ export interface Proyecto {
   _count?: { paginas: number };
   // Presentes solo en el detalle:
   paginas?: ProyectoPagina[];
+  tecnologias?: Tecnologia[];
+  componentesStack?: ComponenteStack[];
 }
 
 export const ESTADO_PROYECTO_LABEL: Record<EstadoProyecto, string> = {

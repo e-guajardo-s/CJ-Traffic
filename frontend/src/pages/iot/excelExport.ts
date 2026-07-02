@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { categoriaCiclo, CATEGORIA_LABEL, type Cruce } from "./types";
+import { categoriaCiclo, CATEGORIA_LABEL, ESTADO_GATEWAY_LABEL, type Cruce } from "./types";
 
 function formatFecha(iso: string | null): string {
   if (!iso) return "";
@@ -32,7 +32,7 @@ export async function exportarDirectorioExcel(cruces: Cruce[]) {
       fechaInstalacion: formatFecha(c.gateway?.fechaInstalacion ?? null),
       fechaDesinstalacion: formatFecha(c.gateway?.fechaDesinstalacion ?? null),
       enMantencion: c.gateway?.enMantencion ? "Sí" : "No",
-      estado: "Esperando API",
+      estado: c.gateway ? ESTADO_GATEWAY_LABEL[c.gateway.estado] : "",
       categoria: CATEGORIA_LABEL[categoriaCiclo(c.gateway)],
     });
   }

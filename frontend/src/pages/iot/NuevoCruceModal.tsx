@@ -27,6 +27,7 @@ export default function NuevoCruceModal({ onClose, onCreated }: { onClose: () =>
           ubicacion,
           controlador,
           modelo: gateway.modelo || null,
+          estado: gateway.estado,
           fechaInstalacion: gateway.fechaInstalacion || null,
           fechaDesinstalacion: gateway.fechaDesinstalacion || null,
           enMantencion: gateway.enMantencion,
@@ -52,7 +53,7 @@ export default function NuevoCruceModal({ onClose, onCreated }: { onClose: () =>
             <input
               value={codigo}
               onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-              placeholder="CRX-006"
+              placeholder="Ej: 1050"
               className="w-full bg-white border border-neutral-300 rounded-lg px-3 py-2 text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>

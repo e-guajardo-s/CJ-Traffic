@@ -47,3 +47,5 @@ adminRouter.post("/usuarios", requireAuth, requireModulo("admin", "ESCRITURA"), 
 
   res.status(201).json({ id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol.nombre });
 });
+
+// El glosario técnico vive en el módulo Desarrollo (iot): ver routes/proyectos.ts.

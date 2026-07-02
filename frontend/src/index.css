@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 html {
   color-scheme: light;
@@ -9,4 +10,120 @@ body {
   background-color: #f8fafc;
   color: #1e293b;
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Entrada suave del contenido principal al cambiar de vista. */
+@keyframes vista-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main > * {
+  animation: vista-entrada 0.18s ease-out;
+}
+
+/* Scrollbars discretos acordes al diseño claro. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d4 transparent;
+}
+
+/* ───────────────────────── Modo oscuro ─────────────────────────
+   Tailwind v4 compila las utilidades de color como var(--color-*), así que
+   redefinir las variables bajo .dark re-tematiza toda la app sin tocar cada
+   componente. Los tonos -50/-100/-200 (fondos/bordes claros) se oscurecen y
+   los -700/-800 (texto sobre esos fondos) se aclaran. Los -500/-600 usados
+   como fondos sólidos con texto blanco se conservan casi iguales. */
+.dark {
+  color-scheme: dark;
+
+  /* Escala neutra invertida */
+  --color-neutral-50: #202023;
+  --color-neutral-100: #29292d;
+  --color-neutral-200: #38383d;
+  --color-neutral-300: #4a4a51;
+  --color-neutral-400: #8b8b94;
+  --color-neutral-500: #a5a5ae;
+  --color-neutral-600: #c6c6cd;
+  --color-neutral-700: #dcdce1;
+  --color-neutral-800: #efeff2;
+  --color-neutral-900: #f7f7f9;
+
+  --color-orange-50: #2f1d0e;
+  --color-orange-100: #42260f;
+  --color-orange-200: #5a3212;
+  --color-orange-600: #fb923c;
+  --color-orange-700: #fdba74;
+  --color-orange-800: #fed7aa;
+
+  --color-emerald-50: #0d2b1f;
+  --color-emerald-100: #12402c;
+  --color-emerald-200: #1a573b;
+  --color-emerald-700: #6ee7b7;
+  --color-emerald-800: #a7f3d0;
+
+  --color-amber-50: #2d2410;
+  --color-amber-100: #403312;
+  --color-amber-200: #574416;
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde68a;
+
+  --color-red-50: #331519;
+  --color-red-100: #48191f;
+  --color-red-200: #5e2028;
+  --color-red-700: #f87171;
+  --color-red-800: #fca5a5;
+
+  --color-rose-50: #33151d;
+  --color-rose-100: #481a27;
+  --color-rose-200: #5e2233;
+  --color-rose-700: #fb7185;
+
+  --color-sky-50: #0e2334;
+  --color-sky-100: #123049;
+  --color-sky-200: #17405e;
+  --color-sky-700: #7dd3fc;
+
+  --color-violet-50: #221636;
+  --color-violet-100: #2e1d4d;
+  --color-violet-200: #3d2665;
+  --color-violet-600: #8b5cf6;
+  --color-violet-700: #c4b5fd;
+
+  --color-blue-50: #152238;
+  --color-blue-100: #1b2d4d;
+  --color-blue-200: #243d66;
+  --color-blue-600: #60a5fa;
+  --color-blue-700: #93c5fd;
+
+  --color-green-50: #122b16;
+  --color-green-100: #173a1e;
+  --color-green-200: #1f4f28;
+  --color-green-700: #86efac;
+
+  --color-purple-50: #251536;
+  --color-purple-100: #321d4d;
+  --color-purple-600: #c084fc;
+
+  scrollbar-color: #4a4a51 transparent;
+}
+
+.dark * {
+  scrollbar-color: #4a4a51 transparent;
+}
+
+/* bg-white se trata aparte para no romper text-white (comparten variable). */
+.dark .bg-white {
+  background-color: #1e1e21;
+}
+
+.dark body {
+  background-color: #131315;
+  color: #e7e7ea;
 }

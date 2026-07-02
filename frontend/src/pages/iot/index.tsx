@@ -5,15 +5,17 @@ import type { CategoriaInventario, ItemInventario } from "./inventarioTypes";
 import IotResumen from "./Resumen";
 import IotDirectorio from "./Directorio";
 import Inventario from "./Inventario";
+import CargandoTabla from "../../components/CargandoTabla";
 
-// "proyectos" es un submódulo de Desarrollo pero se renderiza aparte en App.tsx
-// (ProyectosModule), así que nunca llega hasta acá.
+// "proyectos" y "tecnologias" son submódulos de Desarrollo pero se renderizan
+// aparte en App.tsx, así que nunca llegan hasta acá.
 export default function IotModule({ submodulo }: { submodulo: "resumen" | "directorio" | "inventario" }) {
+  if (submodulo === "resumen") return <IotResumen />;
   if (submodulo === "inventario") return <InventarioModule />;
-  return <CrucesModule submodulo={submodulo} />;
+  return <DirectorioModule />;
 }
 
-function CrucesModule({ submodulo }: { submodulo: "resumen" | "directorio" }) {
+function DirectorioModule() {
   const [cruces, setCruces] = useState<Cruce[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,10 +28,9 @@ function CrucesModule({ submodulo }: { submodulo: "resumen" | "directorio" }) {
   useEffect(cargar, []);
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
-  if (!cruces) return <p className="text-sm text-neutral-500">Cargando…</p>;
+  if (!cruces) return <CargandoTabla />;
 
-  if (submodulo === "directorio") return <IotDirectorio cruces={cruces} onChange={cargar} />;
-  return <IotResumen cruces={cruces} />;
+  return <IotDirectorio cruces={cruces} onChange={cargar} />;
 }
 
 function InventarioModule() {
@@ -49,7 +50,7 @@ function InventarioModule() {
   useEffect(cargar, []);
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
-  if (!items || !categorias) return <p className="text-sm text-neutral-500">Cargando…</p>;
+  if (!items || !categorias) return <CargandoTabla />;
 
   return <Inventario items={items} categorias={categorias} onChange={cargar} />;
 }

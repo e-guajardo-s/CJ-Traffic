@@ -4,13 +4,46 @@ import { apiFetch, ApiError } from "../../api";
 import { useAuth } from "../../AuthContext";
 import Modal from "../../components/Modal";
 import { showToast } from "../../components/toast";
+import CargandoTabla from "../../components/CargandoTabla";
+import Pizarra from "./Pizarra";
 import { ESTADO_PROYECTO_COLOR, ESTADO_PROYECTO_LABEL, type EstadoProyecto, type Proyecto, type UsuarioLite } from "./types";
 
 const inputClass =
   "w-full bg-white border border-neutral-300 rounded-lg px-3 py-2 text-neutral-800 focus:outline-none focus:ring-2 focus:ring-orange-500";
 
 export default function ProyectosModule() {
-  return <ListadoProyectos />;
+  const { puede } = useAuth();
+  const [vista, setVista] = useState<"listado" | "pizarra">("listado");
+
+  const tabClass = (activo: boolean) =>
+    `text-xs font-bold px-4 py-2 rounded-lg transition-all ${
+      activo ? "bg-white text-orange-600 shadow-sm" : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200/50"
+    }`;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-1 bg-neutral-100/80 p-1 rounded-xl w-fit">
+        <button onClick={() => setVista("listado")} className={tabClass(vista === "listado")}>
+          Proyectos
+        </button>
+        <button onClick={() => setVista("pizarra")} className={tabClass(vista === "pizarra")}>
+          Pizarra de Ideas
+        </button>
+      </div>
+
+      {vista === "listado" ? (
+        <ListadoProyectos />
+      ) : (
+        <Pizarra
+          endpoint="/proyectos/pizarra-general"
+          nombreArchivo="pizarra-ideas-desarrollo"
+          puedeEscribir={puede("iot", "ESCRITURA")}
+          titulo="Pizarra de Ideas del Área"
+          descripcion="Lienzo compartido para idear antes de formalizar un proyecto. Cada proyecto tiene además su propia pizarra."
+        />
+      )}
+    </div>
+  );
 }
 
 function ListadoProyectos() {
@@ -41,7 +74,7 @@ function ListadoProyectos() {
   }, [proyectos, busqueda, estadoFiltro]);
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
-  if (!proyectos) return <p className="text-sm text-neutral-500">Cargando…</p>;
+  if (!proyectos) return <CargandoTabla />;
 
   return (
     <div className="space-y-4">

@@ -1,5 +1,6 @@
 import express from "express";
 import bcrypt from "bcryptjs";
+import path from "path";
 import { prisma } from "./prisma";
 import { requireAuth, signToken } from "./auth";
 import { iotRouter } from "./routes/iot";
@@ -11,7 +12,8 @@ import { proyectosRouter } from "./routes/proyectos";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(express.json());
+app.use(express.json({ limit: "15mb" }));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/health", async (_req, res) => {
   const roles = await prisma.rol.findMany();

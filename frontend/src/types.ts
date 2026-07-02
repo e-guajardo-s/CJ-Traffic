@@ -5,7 +5,7 @@ export function esModulo(v: string | undefined): v is Modulo {
   return v === "iot" || v === "firmware" || v === "admin";
 }
 
-export type SubVistaIot = "resumen" | "directorio" | "inventario" | "proyectos";
+export type SubVistaIot = "resumen" | "directorio" | "inventario" | "proyectos" | "tecnologias" | "glosario";
 export type SubVistaFirmware = "resumen" | "historial";
 export type SubVistaAdmin = "usuarios";
 export type SubVista = SubVistaIot | SubVistaFirmware | SubVistaAdmin;
@@ -21,6 +21,8 @@ export const SUBMODULOS: Record<Modulo, SubModuloDef[]> = {
     { id: "directorio", label: "Directorio de Gateways" },
     { id: "inventario", label: "Inventario" },
     { id: "proyectos", label: "Proyectos" },
+    { id: "tecnologias", label: "I+D y Tecnologías" },
+    { id: "glosario", label: "Glosario Técnico" },
   ],
   firmware: [
     { id: "resumen", label: "Resumen" },

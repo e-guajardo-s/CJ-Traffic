@@ -103,6 +103,29 @@ model GatewayIot {
   enMantencion        Boolean       @default(false)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
+
+  mantenciones MantencionGateway[]
+}
+
+// Historial de mantenciones por gateway: cada visita a terreno o intervención
+// queda registrada con fecha, tipo, técnico responsable y notas.
+enum TipoMantencion {
+  PREVENTIVA
+  CORRECTIVA
+  INSTALACION
+  RETIRO
+  OTRA
+}
+
+model MantencionGateway {
+  id        Int            @id @default(autoincrement())
+  gateway   GatewayIot     @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  gatewayId Int
+  fecha     DateTime
+  tipo      TipoMantencion @default(PREVENTIVA)
+  tecnico   String? // nombre de quien ejecutó la mantención (texto libre: puede ser externo)
+  notas     String?
+  createdAt DateTime       @default(now())
 }
 
 enum EstadoProgramacion {
@@ -213,6 +236,20 @@ model Proyecto {
 
   paginas ProyectoPagina[]
   tareas  ProyectoTarea[]
+  tecnologias Tecnologia[]
+  componentesStack ComponenteStack[]
+  pizarra Pizarra?
+}
+
+// Pizarra de bocetos y planificación: lienzo vectorial (JSON) que el frontend
+// redibuja en un canvas. Con proyectoId apunta a la pizarra de ese proyecto;
+// con proyectoId null es la pizarra general de ideas del área.
+model Pizarra {
+  id         Int       @id @default(autoincrement())
+  proyecto   Proyecto? @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  proyectoId Int?      @unique
+  contenido  Json
+  updatedAt  DateTime  @updatedAt
 }
 
 // Documentación: varias páginas de texto (markdown) por proyecto, ordenables.
@@ -265,4 +302,44 @@ model BitacoraEntry {
   entidadId Int
   detalle   Json // valores previos/nuevos, para trazabilidad
   createdAt DateTime @default(now())
+}
+
+model Tecnologia {
+  id            Int              @id @default(autoincrement())
+  nombre        String           // Ej: "Botonera Peatonal Inteligente"
+  descripcion   String?          // Ej: "Sistema de pulsador con respuesta acústica y telemetría"
+  categoria     String           // HARDWARE, SOFTWARE, COMUNICACIONES
+  archivos      ArchivoTecnico[] // Aquí se guardan los múltiples manuales
+  
+  // Relación inversa con los proyectos que utilizan esta tecnología
+  proyectos     Proyecto[]       
+  fechaCreacion DateTime         @default(now())
+}
+
+model ArchivoTecnico {
+  id           Int        @id @default(autoincrement())
+  nombre       String     // Ej: "Manual de Instalación Eléctrica", "Guía de Configuración MQTT"
+  url          String     // Ruta del archivo
+  extension    String     // pdf, docx, etc.
+  
+  tecnologiaId Int
+  tecnologia   Tecnologia @relation(fields: [tecnologiaId], references: [id], onDelete: Cascade)
+  
+  fechaSubida  DateTime   @default(now())
+}
+
+model ComponenteStack {
+  id          Int      @id @default(autoincrement())
+  capa        String   // 'HARDWARE', 'RED', 'PROCESAMIENTO', 'VISUALIZACION'
+  nombre      String   // Ej: "Cámara Jetson Nano", "MQTT Broker AWS", "React App"
+  detalles    String?  // Notas breves ej: "Inferencia YOLOv3-tiny local"
+  
+  proyectoId  Int
+  proyecto    Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+}
+
+model TerminoGlosario {
+  id         Int      @id @default(autoincrement())
+  termino    String   @unique // Ej: "MQTT", "YOLOv3", "PLC"
+  definicion String   // Ej: "Protocolo de mensajería en tiempo real usado para conectar los cruces con la nube."
 }
