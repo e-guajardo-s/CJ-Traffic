@@ -1,14 +1,15 @@
-export type Modulo = "iot" | "firmware" | "admin";
-export const MODULOS: Modulo[] = ["iot", "firmware", "admin"];
+export type Modulo = "iot" | "firmware" | "admin" | "proyectos_empresa";
+export const MODULOS: Modulo[] = ["iot", "firmware", "proyectos_empresa", "admin"];
 
 export function esModulo(v: string | undefined): v is Modulo {
-  return v === "iot" || v === "firmware" || v === "admin";
+  return v === "iot" || v === "firmware" || v === "admin" || v === "proyectos_empresa";
 }
 
-export type SubVistaIot = "resumen" | "directorio" | "inventario" | "proyectos" | "tecnologias" | "glosario";
+export type SubVistaIot = "resumen" | "directorio" | "inventario" | "proyectos" | "tecnologias" | "glosario" | "troubleshooting";
 export type SubVistaFirmware = "resumen" | "historial";
 export type SubVistaAdmin = "usuarios";
-export type SubVista = SubVistaIot | SubVistaFirmware | SubVistaAdmin;
+export type SubVistaProyectosEmpresa = "panel" | "tablero";
+export type SubVista = SubVistaIot | SubVistaFirmware | SubVistaAdmin | SubVistaProyectosEmpresa;
 
 export interface SubModuloDef {
   id: SubVista;
@@ -23,10 +24,15 @@ export const SUBMODULOS: Record<Modulo, SubModuloDef[]> = {
     { id: "proyectos", label: "Proyectos" },
     { id: "tecnologias", label: "I+D y Tecnologías" },
     { id: "glosario", label: "Glosario Técnico" },
+    { id: "troubleshooting", label: "Troubleshooting" },
   ],
   firmware: [
     { id: "resumen", label: "Resumen" },
     { id: "historial", label: "Historial y Feedback" },
+  ],
+  proyectos_empresa: [
+    { id: "panel", label: "Panel Ejecutivo" },
+    { id: "tablero", label: "Listado" },
   ],
   admin: [{ id: "usuarios", label: "Usuarios" }],
 };
@@ -34,9 +40,11 @@ export const SUBMODULOS: Record<Modulo, SubModuloDef[]> = {
 export const MODULO_LABEL: Record<Modulo, string> = {
   iot: "Desarrollo",
   firmware: "Firmware Controladores",
+  proyectos_empresa: "Proyectos",
   admin: "Administración",
 };
 
 export function esSubVistaDe(modulo: Modulo, v: string | undefined): v is SubVista {
   return SUBMODULOS[modulo].some((s) => s.id === v);
 }
+

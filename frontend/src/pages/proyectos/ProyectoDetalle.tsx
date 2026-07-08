@@ -8,6 +8,7 @@ import { PaginaPDF } from './PaginaPDF';
 import { ConstructorStack } from './ConstructorStack';
 import Pizarra from './Pizarra';
 import { TextoGlosario } from '../../components/TextoGlosario';
+import { IncidenciaFormModal } from "../iot/Troubleshooting";
 import { apiFetch, ApiError } from "../../api";
 import { useAuth } from "../../AuthContext";
 import Modal from "../../components/Modal";
@@ -41,7 +42,7 @@ export default function ProyectoDetalle() {
   const puedeEscribir = puede("iot", "ESCRITURA");
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"tareas" | "documentacion" | "biblioteca" | "stack" | "pizarra">("tareas");
+  const [tab, setTab] = useState<"tareas" | "documentacion" | "biblioteca" | "stack" | "pizarra" | "troubleshooting">("tareas");
   const [editando, setEditando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [generandoInforme, setGenerandoInforme] = useState(false);
@@ -140,6 +141,12 @@ export default function ProyectoDetalle() {
           >
             Pizarra
           </button>
+          <button
+            onClick={() => setTab("troubleshooting")}
+            className={`text-xs font-bold px-4 py-2 rounded-lg transition-all ${tab === "troubleshooting" ? "bg-white text-orange-600 shadow-sm" : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-200/50"}`}
+          >
+            Fallas (Troubleshooting)
+          </button>
         </div>
       </div>
 
@@ -155,6 +162,8 @@ export default function ProyectoDetalle() {
           nombreArchivo={`pizarra-${proyecto.nombre.replace(/\s+/g, "_")}`}
           puedeEscribir={puedeEscribir}
         />
+      ) : tab === "troubleshooting" ? (
+        <ProyectoTroubleshooting proyectoId={proyecto.id} puedeEscribir={puedeEscribir} />
       ) : (
         <ConstructorStack proyecto={proyecto} puedeEscribir={puedeEscribir} onChange={cargar} />
       )}
@@ -1247,6 +1256,187 @@ function EnlazarTecnologiaModal({ proyectoId, tecnologiasYaVinculadas, onClose, 
         </div>
       </div>
     </Modal>
+  );
+}
+
+function ProyectoTroubleshooting({ proyectoId, puedeEscribir }: { proyectoId: number; puedeEscribir: boolean }) {
+  const [incidencias, setIncidencias] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [incidenciaEdicion, setIncidenciaEdicion] = useState<any | null>(null);
+
+  function cargar() {
+    setLoading(true);
+    apiFetch<any[]>("/iot/troubleshooting")
+      .then((inc) => {
+        // Filtrar solo las de este proyecto
+        setIncidencias(inc.filter((i) => i.proyectoId === proyectoId));
+        setError(null);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(cargar, [proyectoId]);
+
+  const handleEliminar = async (id: number) => {
+    if (!confirm("¿Estás seguro de eliminar esta incidencia del registro?")) return;
+    try {
+      await apiFetch(`/iot/troubleshooting/${id}`, { method: "DELETE" });
+      showToast("Incidencia eliminada con éxito", "success");
+      cargar();
+    } catch (e) {
+      showToast(e instanceof ApiError ? e.message : "Error al eliminar", "error");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <p className="text-sm text-neutral-500 italic">Cargando bitácora de fallas…</p>
+      </div>
+    );
+  }
+  if (error) return <p className="text-sm text-red-600 p-4">Error: {error}</p>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap border-b border-neutral-100 pb-4">
+        <div>
+          <h3 className="text-lg font-bold text-neutral-800">Bitácora de Incidencias / Fallas</h3>
+          <p className="text-xs text-neutral-500 mt-0.5">Historial de problemas de hardware o software vinculados a este proyecto.</p>
+        </div>
+        {puedeEscribir && (
+          <button
+            onClick={() => {
+              setIncidenciaEdicion(null);
+              setModalAbierto(true);
+            }}
+            className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow-sm transition-all cursor-pointer"
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Registrar Falla
+          </button>
+        )}
+      </div>
+
+      {(incidencias ?? []).length === 0 ? (
+        <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-8 text-center">
+          <p className="text-neutral-400 text-xs italic">No hay fallas reportadas para este proyecto.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(incidencias ?? []).map((inc) => {
+            const esHard = inc.tipo === "HARDWARE";
+            const badgeTipo = esHard ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-blue-50 text-blue-700 border-blue-200";
+            const badgeEstado = inc.estado === "SOLUCIONADO" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : inc.estado === "EN_PROCESO" ? "bg-yellow-50 text-yellow-700 border-yellow-200" : "bg-rose-50 text-rose-700 border-rose-200";
+
+            return (
+              <div key={inc.id} className="bg-white border border-neutral-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex gap-1.5">
+                      <span className={`inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider border rounded px-1.5 py-0.5 ${badgeTipo}`}>
+                        {inc.tipo === "HARDWARE" ? (
+                          <>
+                            <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                            </svg>
+                            Hardware
+                          </>
+                        ) : (
+                          <>
+                            <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                              <line x1="8" y1="21" x2="16" y2="21" />
+                              <line x1="12" y1="17" x2="12" y2="21" />
+                            </svg>
+                            Software
+                          </>
+                        )}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider border rounded px-1.5 py-0.5 ${badgeEstado}`}>
+                        {inc.estado === "SOLUCIONADO" ? (
+                          <>
+                            <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Solucionado
+                          </>
+                        ) : inc.estado === "EN_PROCESO" ? (
+                          <>
+                            <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            En proceso
+                          </>
+                        ) : (
+                          <>
+                            <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="12" y1="8" x2="12" y2="12" />
+                              <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                            Abierto
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    {puedeEscribir && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button onClick={() => { setIncidenciaEdicion(inc); setModalAbierto(true); }} className="p-1 hover:bg-neutral-100 rounded text-neutral-500 hover:text-neutral-700 transition cursor-pointer">
+                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                        </button>
+                        <button onClick={() => handleEliminar(inc.id)} className="p-1 hover:bg-red-50 rounded text-red-500 hover:text-red-700 transition cursor-pointer">
+                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <h4 className="text-sm font-extrabold text-neutral-800 leading-snug mb-2">{inc.titulo}</h4>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Detalle</p>
+                      <p className="text-neutral-600 bg-neutral-50 border border-neutral-100 p-2.5 rounded-lg whitespace-pre-wrap leading-relaxed">{inc.descripcion}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Solución / Acción</p>
+                      {inc.accionTomada ? (
+                        <p className="text-neutral-600 bg-emerald-50/20 border border-emerald-100/50 p-2.5 rounded-lg whitespace-pre-wrap leading-relaxed">{inc.accionTomada}</p>
+                      ) : (
+                        <p className="text-neutral-400 italic bg-neutral-50/30 p-2.5 rounded-lg">Sin solución registrada.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 pt-2 border-t border-neutral-100 flex items-center justify-between text-[10px] text-neutral-400">
+                  <span>Por: {inc.autor.nombre}</span>
+                  <span>{new Date(inc.fecha).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {modalAbierto && (
+        <IncidenciaFormModal
+          incidencia={incidenciaEdicion}
+          proyectos={[]}
+          proyectoIdFijo={proyectoId}
+          onClose={() => setModalAbierto(false)}
+          onSuccess={() => {
+            setModalAbierto(false);
+            cargar();
+          }}
+        />
+      )}
+    </div>
   );
 }
 

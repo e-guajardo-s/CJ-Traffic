@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframes — Proyectos Empresa · Intranet CJ Traffic</title>
+<style>
+  /* ── Estética wireframe: monocromo, cajas, sin diseño final ── */
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, "Segoe UI", sans-serif; }
+  body { background: #e8e8e8; color: #333; padding-bottom: 60px; }
+  .barra-top {
+    position: sticky; top: 0; z-index: 50; background: #2b2b2b; color: #fff;
+    padding: 10px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .barra-top strong { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .barra-top .nota { font-size: 11px; color: #aaa; }
+  nav.pantallas { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+  nav.pantallas button {
+    background: #444; color: #ddd; border: 1px solid #666; padding: 6px 10px;
+    font-size: 11px; cursor: pointer; border-radius: 4px;
+  }
+  nav.pantallas button.activo { background: #fff; color: #222; font-weight: 700; }
+
+  .pantalla { display: none; max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+  .pantalla.visible { display: block; }
+
+  h1.titulo-pantalla { font-size: 18px; margin-bottom: 4px; }
+  p.contexto { font-size: 12px; color: #777; margin-bottom: 6px; max-width: 800px; }
+  .dolor {
+    display: inline-block; background: #fff; border: 1px dashed #999; border-left: 4px solid #555;
+    font-size: 11px; color: #555; padding: 6px 10px; margin: 4px 6px 14px 0; border-radius: 3px;
+  }
+  .dolor b { color: #222; }
+
+  /* Marco de la app */
+  .marco { background: #fff; border: 2px solid #999; border-radius: 8px; overflow: hidden; }
+  .app-header {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+    border-bottom: 2px solid #bbb; background: #f4f4f4; font-size: 11px; color: #666;
+  }
+  .logo-wf { width: 90px; height: 26px; border: 1px solid #999; display: flex; align-items: center;
+    justify-content: center; font-size: 10px; color: #999; background: repeating-linear-gradient(45deg,#fff,#fff 6px,#f0f0f0 6px,#f0f0f0 12px); }
+  .app-header .tabs { display: flex; gap: 4px; margin-left: 10px; }
+  .app-header .tabs span { border: 1px solid #bbb; padding: 4px 10px; border-radius: 4px; background: #fff; }
+  .app-header .tabs span.on { background: #ddd; font-weight: 700; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #999; margin-left: auto;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; color: #777; }
+
+  .cuerpo { display: flex; min-height: 520px; }
+  .sidebar-wf { width: 180px; border-right: 2px solid #ccc; background: #fafafa; padding: 12px 8px; }
+  .sidebar-wf .item { border: 1px solid #ccc; border-radius: 4px; padding: 7px 9px; font-size: 11px;
+    color: #666; margin-bottom: 6px; background: #fff; }
+  .sidebar-wf .item.on { background: #ddd; font-weight: 700; color: #222; }
+  main.contenido { flex: 1; padding: 16px; background: #fff; }
+
+  /* Piezas wireframe */
+  .fila { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .caja { border: 1.5px solid #aaa; border-radius: 6px; background: #fff; padding: 12px; }
+  .caja h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 8px; }
+  .kpi { flex: 1; min-width: 140px; text-align: left; }
+  .kpi .num { font-size: 26px; font-weight: 800; color: #444; }
+  .kpi .lbl { font-size: 10px; color: #888; text-transform: uppercase; }
+  .placeholder { background: repeating-linear-gradient(45deg,#fff,#fff 8px,#f2f2f2 8px,#f2f2f2 16px);
+    border: 1px dashed #bbb; border-radius: 4px; display: flex; align-items: center; justify-content: center;
+    color: #999; font-size: 11px; }
+  .linea { height: 8px; background: #e2e2e2; border-radius: 4px; margin: 6px 0; }
+  .linea.corta { width: 60%; }
+  .chip { display: inline-block; border: 1px solid #999; border-radius: 999px; font-size: 10px;
+    padding: 2px 9px; color: #666; background: #f2f2f2; margin-right: 4px; }
+  .chip.negro { background: #555; color: #fff; border-color: #555; }
+  table.wf { width: 100%; border-collapse: collapse; font-size: 11px; }
+  table.wf th { text-align: left; font-size: 10px; text-transform: uppercase; color: #999;
+    border-bottom: 2px solid #ccc; padding: 6px 8px; }
+  table.wf td { border-bottom: 1px solid #e5e5e5; padding: 8px; color: #555; }
+  .barra-prog { height: 10px; border: 1px solid #aaa; border-radius: 5px; overflow: hidden; background: #f5f5f5; min-width: 90px; }
+  .barra-prog i { display: block; height: 100%; background: repeating-linear-gradient(45deg,#888,#888 4px,#aaa 4px,#aaa 8px); }
+  .btn-wf { display: inline-block; border: 1.5px solid #777; background: #eee; color: #444;
+    font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 5px; }
+  .btn-wf.primario { background: #555; color: #fff; }
+
+  /* Pipeline / stepper */
+  .pipeline { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 8px 0; }
+  .paso { border: 1.5px solid #999; background: #fff; border-radius: 6px; padding: 8px 10px;
+    font-size: 10px; text-align: center; color: #666; min-width: 92px; }
+  .paso.hecho { background: #ddd; font-weight: 700; color: #222; }
+  .paso.actual { border-color: #444; border-width: 2.5px; font-weight: 700; color: #222; }
+  .paso.bloqueado { border-style: dashed; color: #aaa; }
+  .conector { width: 26px; height: 2px; background: #999; position: relative; flex-shrink: 0; }
+  .conector::after { content: ""; position: absolute; right: 0; top: -3px; border: 4px solid transparent; border-left-color: #999; }
+
+  .tracks { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  .track h4 { font-size: 12px; margin-bottom: 2px; color: #333; }
+  .track .estado { font-size: 10px; margin-bottom: 8px; }
+  .subtarea { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #555; padding: 4px 0;
+    border-bottom: 1px dotted #ddd; }
+  .check { width: 12px; height: 12px; border: 1.5px solid #888; border-radius: 3px; flex-shrink: 0; }
+  .check.si { background: #666; }
+
+  .hito { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px dotted #ccc; font-size: 11px; }
+  .hito .punto { width: 10px; height: 10px; border-radius: 50%; background: #777; margin-top: 3px; flex-shrink: 0; }
+  .hito .fecha { color: #999; font-size: 10px; }
+
+  .alerta-wf { border: 1.5px dashed #777; background: #f4f4f4; border-radius: 6px; padding: 10px 12px;
+    font-size: 11px; color: #555; margin-bottom: 8px; }
+  .alerta-wf b { color: #222; }
+
+  /* Móvil */
+  .movil { width: 300px; border: 3px solid #666; border-radius: 24px; padding: 14px 10px; background: #fff; margin: 0 auto; }
+  .movil .notch { width: 80px; height: 8px; background: #666; border-radius: 4px; margin: 0 auto 12px; }
+
+  .anotacion { font-size: 10px; color: #777; background: #fffbe6; border: 1px dashed #c9b458;
+    padding: 4px 8px; border-radius: 3px; display: inline-block; margin-top: 6px; }
+  .leyenda { max-width: 1200px; margin: 10px auto 0; padding: 0 16px; font-size: 11px; color: #888; }
+
+  /* Kanban wireframe */
+  .kanban { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; }
+  .kcol { flex: 1; min-width: 160px; background: #f4f4f4; border: 1.5px solid #ccc; border-radius: 8px; padding: 8px; }
+  .kcol > .khead { display: flex; align-items: center; justify-content: space-between; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.5px; color: #777; font-weight: 700; margin-bottom: 8px; }
+  .kcol > .khead .cnt { background: #ddd; border-radius: 999px; padding: 1px 7px; font-size: 10px; }
+  .kcard { background: #fff; border: 1.5px solid #aaa; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
+  .kcard .t { font-size: 11px; font-weight: 700; color: #333; margin-bottom: 5px; }
+  .kcard .meta { display: flex; align-items: center; gap: 5px; font-size: 9px; color: #888; }
+  .mini-avatar { width: 16px; height: 16px; border-radius: 50%; border: 1px solid #999; background: #eee;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 8px; color: #666; }
+  .tag { font-size: 9px; border: 1px solid #bbb; border-radius: 3px; padding: 1px 5px; color: #666; background: #fafafa; }
+  .subproc-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .subproc-tabs .st { border: 1.5px solid #aaa; background: #fff; border-radius: 6px 6px 0 0; padding: 7px 12px;
+    font-size: 11px; color: #666; cursor: default; }
+  .subproc-tabs .st.on { background: #555; color: #fff; border-color: #555; font-weight: 700; }
+  .subproc-tabs .st .badge { background: #ddd; color: #555; border-radius: 999px; font-size: 9px; padding: 0 5px; margin-left: 4px; }
+  .subproc-tabs .st.on .badge { background: #fff; }
+</style>
+</head>
+<body>
+
+<div class="barra-top">
+  <strong>Wireframes · Módulo Proyectos Empresa (Obras)</strong>
+  <span class="nota">Baja fidelidad — flujo Ventas → Subgerencia Técnica → Coordinación → Bodega / Servicio Técnico</span>
+  <nav class="pantallas">
+    <button data-p="p1" class="activo">1 · Dashboard Subgerente</button>
+    <button data-p="p2">2 · Listado de Proyectos</button>
+    <button data-p="p3">3 · Detalle de Proyecto</button>
+    <button data-p="p3b">3b · Kanban de un Track</button>
+    <button data-p="p4">4 · Bodega + Inventario</button>
+    <button data-p="p5">5 · Servicio Técnico (Kanban)</button>
+    <button data-p="p6">6 · Técnico en Terreno (móvil)</button>
+    <button data-p="p7">7 · Mapa del Flujo</button>
+  </nav>
+</div>
+
+<!-- ══════════════ 1 · DASHBOARD SUBGERENTE ══════════════ -->
+<section id="p1" class="pantalla visible">
+  <h1 class="titulo-pantalla">1 · Dashboard del Subgerente Técnico (Javier)</h1>
+  <p class="contexto">Vista ejecutiva de toda la operación: estado global, costos incurridos y hitos sin depender del correo.</p>
+  <span class="dolor"><b>Dolor que ataca:</b> "consulta costos preguntando constantemente" · "no puede llevar la cuenta de hitos porque es todo por correo" · "quiere estado global fácil"</span>
+
+  <div class="marco">
+    <div class="app-header">
+      <div class="logo-wf">LOGO</div>
+      <div class="tabs"><span>Inicio</span><span class="on">Proyectos Empresa</span><span>Desarrollo</span><span>Firmware</span></div>
+      <div class="avatar">JS</div>
+    </div>
+    <div class="cuerpo">
+      <div class="sidebar-wf">
+        <div class="item on">Panel Global</div>
+        <div class="item">Proyectos</div>
+        <div class="item">Costos</div>
+        <div class="item">Hitos</div>
+      </div>
+      <main class="contenido">
+        <div class="fila">
+          <div class="caja kpi"><div class="num">14</div><div class="lbl">Proyectos activos</div></div>
+          <div class="caja kpi"><div class="num">3</div><div class="lbl">Bloqueados (permisos)</div></div>
+          <div class="caja kpi"><div class="num">$ ——</div><div class="lbl">Costo incurrido del mes</div></div>
+          <div class="caja kpi"><div class="num">8</div><div class="lbl">Hitos esta semana</div></div>
+        </div>
+
+        <div class="fila">
+          <div class="caja" style="flex:2; min-width:340px;">
+            <h3>Salud de proyectos por fase</h3>
+            <table class="wf">
+              <tr><th>Proyecto</th><th>Tipo</th><th>Fase</th><th>Avance</th><th>Costo incurrido</th><th>Riesgo</th></tr>
+              <tr><td>Semáforo Av. ———</td><td><span class="chip">Nuevo</span></td><td>Gestión</td><td><div class="barra-prog"><i style="width:55%"></i></div></td><td>$ ———</td><td><span class="chip negro">Permiso atrasado</span></td></tr>
+              <tr><td>Modificación cruce ———</td><td><span class="chip">Modificación</span></td><td>Ejecución</td><td><div class="barra-prog"><i style="width:80%"></i></div></td><td>$ ———</td><td><span class="chip">OK</span></td></tr>
+              <tr><td>CCTV Ruta ———</td><td><span class="chip">CCTV</span></td><td>Inicio</td><td><div class="barra-prog"><i style="width:15%"></i></div></td><td>$ ———</td><td><span class="chip">Sin estudio vial</span></td></tr>
+            </table>
+            <span class="anotacion">Costos se alimentan de las OC de Bodega — sin preguntar a nadie</span>
+          </div>
+          <div class="caja" style="flex:1; min-width:240px;">
+            <h3>Hitos recientes (toda la organización)</h3>
+            <div class="hito"><div class="punto"></div><div><b>OC aprobada</b> — controladores<br><span class="fecha">Bodega · hace 2 h</span></div></div>
+            <div class="hito"><div class="punto"></div><div><b>Permiso ingresado</b> a organismo externo<br><span class="fecha">Coordinación · ayer</span></div></div>
+            <div class="hito"><div class="punto"></div><div><b>Programación lista</b> controlador ———<br><span class="fecha">Serv. Técnico · ayer</span></div></div>
+            <div class="linea"></div><div class="linea corta"></div>
+          </div>
+        </div>
+
+        <div class="caja">
+          <h3>Alertas operativas</h3>
+          <div class="alerta-wf">⚠ <b>Permiso municipal</b> del proyecto ——— lleva 12 días sin respuesta del organismo externo.</div>
+          <div class="alerta-wf">⚠ <b>Programación bloqueada</b>: el estudio vial de ——— aún no se realiza.</div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 2 · LISTADO ══════════════ -->
+<section id="p2" class="pantalla">
+  <h1 class="titulo-pantalla">2 · Listado de Proyectos Empresa</h1>
+  <p class="contexto">Entrada desde Ventas: el requerimiento acordado con el cliente crea el proyecto. El subgerente asigna coordinadores.</p>
+  <span class="dolor"><b>Dolor que ataca:</b> "estatus detallado de toda la organización" · traspaso entre coordinadores</span>
+
+  <div class="marco">
+    <div class="app-header"><div class="logo-wf">LOGO</div><div class="tabs"><span class="on">Proyectos Empresa</span></div><div class="avatar">··</div></div>
+    <div class="cuerpo">
+      <div class="sidebar-wf">
+        <div class="item">Panel Global</div>
+        <div class="item on">Proyectos</div>
+        <div class="item">Costos</div>
+        <div class="item">Hitos</div>
+      </div>
+      <main class="contenido">
+        <div class="fila" style="align-items:center;">
+          <div class="placeholder" style="width:220px; height:30px;">buscar proyecto…</div>
+          <span class="chip">Tipo: Todos ▾</span>
+          <span class="chip">Fase: Todas ▾</span>
+          <span class="chip">Coordinador: Todos ▾</span>
+          <span style="margin-left:auto;"><span class="btn-wf primario">+ Nuevo proyecto (desde requerimiento de Ventas)</span></span>
+        </div>
+        <table class="wf">
+          <tr><th>Proyecto</th><th>Cliente</th><th>Tipo</th><th>Coordinador</th><th>Fase</th><th>Tracks</th><th>Avance</th></tr>
+          <tr>
+            <td><b>Semáforo Av. ———</b></td><td>Municipalidad ———</td><td><span class="chip">Nuevo semáforo</span></td><td>Coord. A</td>
+            <td>
+              <div class="pipeline" style="margin:0;">
+                <div class="paso hecho">Inicio</div><div class="conector"></div>
+                <div class="paso actual">Gestión</div><div class="conector"></div>
+                <div class="paso">Ejecución</div>
+              </div>
+            </td>
+            <td><span class="chip">Permisos ⏳</span><span class="chip">Materiales ✓</span><span class="chip">Program. ⏳</span><span class="chip">Enlace —</span></td>
+            <td><div class="barra-prog"><i style="width:55%"></i></div></td>
+          </tr>
+          <tr>
+            <td><b>Modificación ———</b></td><td>Empresa ———</td><td><span class="chip">Modificación</span></td><td>Coord. B</td>
+            <td>
+              <div class="pipeline" style="margin:0;">
+                <div class="paso hecho">Inicio</div><div class="conector"></div>
+                <div class="paso hecho">Gestión</div><div class="conector"></div>
+                <div class="paso actual">Ejecución</div>
+              </div>
+            </td>
+            <td><span class="chip">Materiales ✓</span><span class="chip">Program. ✓</span></td>
+            <td><div class="barra-prog"><i style="width:80%"></i></div></td>
+          </tr>
+          <tr>
+            <td><b>CCTV Ruta ———</b></td><td>Cliente ———</td><td><span class="chip">CCTV</span></td><td><i>sin asignar</i></td>
+            <td>
+              <div class="pipeline" style="margin:0;">
+                <div class="paso actual">Inicio</div><div class="conector"></div>
+                <div class="paso bloqueado">Gestión</div><div class="conector"></div>
+                <div class="paso bloqueado">Ejecución</div>
+              </div>
+            </td>
+            <td><span class="chip">Enlace ⏳</span></td>
+            <td><div class="barra-prog"><i style="width:15%"></i></div></td>
+          </tr>
+        </table>
+        <span class="anotacion">Las fases NO son lineales: un track puede bloquearse (ej. sin estudio vial ⇒ sin programación) sin frenar los demás</span>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 3 · DETALLE DE PROYECTO ══════════════ -->
+<section id="p3" class="pantalla">
+  <h1 class="titulo-pantalla">3 · Detalle de Proyecto — tracks con coordinadores distintos</h1>
+  <p class="contexto">Un proyecto normalmente involucra a <b>varios coordinadores a la vez</b>, cada uno a cargo de un track distinto (Permisos, Materiales, Programación, Enlace). Cada track es un <b>tablero Kanban propio</b> (ver pantalla 3b). Se suma el inventario asociado desde Bodega y desde Desarrollo.</p>
+  <span class="dolor"><b>Dolor que ataca:</b> "traspaso entre compañeros / hitos no documentados" · "en terreno no hay claridad del hardware"</span>
+
+  <div class="marco">
+    <div class="app-header"><div class="logo-wf">LOGO</div><div class="tabs"><span class="on">Proyectos Empresa</span></div><div class="avatar">JS</div></div>
+    <div class="cuerpo">
+      <main class="contenido" style="border-left:none;">
+        <div class="fila" style="align-items:center;">
+          <div>
+            <h2 style="font-size:16px;">Semáforo Av. ——— <span class="chip negro">Gestión</span></h2>
+            <span style="font-size:11px; color:#888;">Cliente: Municipalidad ——— · Subgerente: Javier · <b>Equipo: 4 coordinadores en distintos tracks</b></span>
+          </div>
+          <span style="margin-left:auto;"><span class="btn-wf">Asignar coordinador a un track</span> <span class="btn-wf primario">+ Registrar hito</span></span>
+        </div>
+
+        <div class="caja" style="margin-bottom:14px;">
+          <h3>Fases (no lineales — cada track avanza a su ritmo)</h3>
+          <div class="pipeline">
+            <div class="paso hecho">INICIO<br><small>requerimiento de Ventas recibido</small></div><div class="conector"></div>
+            <div class="paso actual">GESTIÓN<br><small>permisos / materiales / programación</small></div><div class="conector"></div>
+            <div class="paso bloqueado">EJECUCIÓN<br><small>instalación y puesta en marcha</small></div>
+          </div>
+        </div>
+
+        <div class="caja" style="margin-bottom:14px;">
+          <h3>Tracks del proyecto — cada uno con su coordinador y su propio Kanban</h3>
+          <table class="wf">
+            <tr><th>Track</th><th>Coordinador a cargo</th><th>Estado</th><th>Avance (Kanban)</th><th></th></tr>
+            <tr>
+              <td>🏛 <b>Permisos</b></td>
+              <td><span class="mini-avatar">CA</span> Coord. A</td>
+              <td><span class="chip negro">Esperando organismo externo</span></td>
+              <td><div class="barra-prog"><i style="width:50%"></i></div> <small>2/4 tarjetas</small></td>
+              <td><span class="btn-wf" onclick="ir('p3b')">Abrir Kanban ▸</span></td>
+            </tr>
+            <tr>
+              <td>📦 <b>Materiales</b> <small>(→ Bodega)</small></td>
+              <td><span class="mini-avatar">CB</span> Coord. B</td>
+              <td><span class="chip">En cotización</span></td>
+              <td><div class="barra-prog"><i style="width:33%"></i></div> <small>2/6 tarjetas</small></td>
+              <td><span class="btn-wf" onclick="ir('p3b')">Abrir Kanban ▸</span></td>
+            </tr>
+            <tr>
+              <td>🖥 <b>Programación</b> <small>(→ Serv. Técnico)</small></td>
+              <td><span class="mini-avatar">CC</span> Coord. C</td>
+              <td><span class="chip negro">Bloqueado (sin estudio vial)</span></td>
+              <td><div class="barra-prog"><i style="width:10%"></i></div> <small>0/3 tarjetas</small></td>
+              <td><span class="btn-wf" onclick="ir('p3b')">Abrir Kanban ▸</span></td>
+            </tr>
+            <tr>
+              <td>📡 <b>Enlace</b> <small>(→ Serv. Técnico)</small></td>
+              <td><span class="mini-avatar">CD</span> Coord. D</td>
+              <td><span class="chip">Solicitado</span></td>
+              <td><div class="barra-prog"><i style="width:33%"></i></div> <small>1/3 tarjetas</small></td>
+              <td><span class="btn-wf" onclick="ir('p3b')">Abrir Kanban ▸</span></td>
+            </tr>
+          </table>
+          <span class="anotacion">Javier recalcó: cada tarea del coordinador (ej. Permisos) NO es un checklist, es su propio Kanban con subprocesos</span>
+        </div>
+
+        <!-- Inventario asociado al proyecto -->
+        <div class="fila">
+          <div class="caja" style="flex:1; min-width:320px;">
+            <h3>📦 Inventario asociado — Bodega (materiales del proyecto)</h3>
+            <table class="wf">
+              <tr><th>Ítem</th><th>Cant.</th><th>Precio unit.</th><th>Estado</th></tr>
+              <tr><td>Controlador ———</td><td>2</td><td>$ ———</td><td><span class="tag">OC emitida</span></td></tr>
+              <tr><td>Gabinete / poste ———</td><td>8</td><td>$ ———</td><td><span class="tag">cotización</span></td></tr>
+              <tr><td>Cable ———</td><td>200 m</td><td>$ ———</td><td><span class="tag">en bodega</span></td></tr>
+            </table>
+            <span class="anotacion">Se sincroniza con el track Materiales y el módulo Bodega (pantalla 4)</span>
+          </div>
+          <div class="caja" style="flex:1; min-width:320px;">
+            <h3>🔧 Inventario asociado — Desarrollo (equipos IoT)</h3>
+            <table class="wf">
+              <tr><th>Equipo</th><th>Unidad</th><th>Estado</th></tr>
+              <tr><td>Gateway ———</td><td>#SN——</td><td><span class="tag">asignado al cruce</span></td></tr>
+              <tr><td>Módulo ———</td><td>#SN——</td><td><span class="tag">en terreno</span></td></tr>
+            </table>
+            <span class="anotacion">Reutiliza el Inventario de Desarrollo y el Directorio de Gateways ya existentes</span>
+          </div>
+        </div>
+
+        <div class="fila">
+          <div class="caja" style="flex:2; min-width:320px;">
+            <h3>Bitácora de hitos (con autor y fecha — clave para traspasos entre coordinadores)</h3>
+            <div class="hito"><div class="punto"></div><div><b>Solicitud de materiales enviada a Bodega</b> — 12 ítems<br><span class="fecha">Coord. B · 01-07-2026</span></div></div>
+            <div class="hito"><div class="punto"></div><div><b>Expediente de permiso ingresado</b> — Nº folio ———<br><span class="fecha">Coord. A · 28-06-2026</span></div></div>
+            <div class="hito"><div class="punto"></div><div><b>Requerimiento recibido desde Ventas</b> — alcance: 4 cruces<br><span class="fecha">Javier (Subgerente) · 25-06-2026</span></div></div>
+          </div>
+          <div class="caja" style="flex:1; min-width:220px;">
+            <h3>Costos del proyecto</h3>
+            <div class="linea"></div><div class="linea corta"></div>
+            <div class="placeholder" style="height:90px;">gráfico costo vs presupuesto</div>
+            <span class="anotacion">Se alimenta de las OC del track Materiales</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 3b · KANBAN DE UN TRACK ══════════════ -->
+<section id="p3b" class="pantalla">
+  <h1 class="titulo-pantalla">3b · Kanban de un Track — ej. "Permisos" del proyecto</h1>
+  <p class="contexto">Al abrir un track se entra a su tablero Kanban propio (mismas columnas que el resto de la intranet). Cada tarjeta es un subproceso del track, con responsable y etiqueta. Así lo profundizó Javier: "Permisos tenía su propio Kanban".</p>
+  <span class="dolor"><b>Dolor que ataca:</b> "hitos no documentados" · "flujo manual" · traspasos entre coordinadores</span>
+
+  <div class="marco">
+    <div class="app-header"><div class="logo-wf">LOGO</div><div class="tabs"><span class="on">Proyectos Empresa</span></div><div class="avatar">CA</div></div>
+    <div class="cuerpo">
+      <main class="contenido" style="border-left:none;">
+        <div class="fila" style="align-items:center;">
+          <div>
+            <span class="btn-wf" onclick="ir('p3')">‹ Volver al proyecto</span>
+            <h2 style="font-size:15px; display:inline-block; margin-left:8px;">🏛 Track: Permisos — Semáforo Av. ———</h2>
+          </div>
+          <span style="margin-left:auto; font-size:11px; color:#888;">Coordinador: <span class="mini-avatar">CA</span> Coord. A · <span class="chip negro">Esperando organismo externo · 12 días</span></span>
+        </div>
+
+        <!-- Selector de track (los otros kanbans del mismo proyecto) -->
+        <div class="subproc-tabs">
+          <div class="st on">🏛 Permisos <span class="badge">4</span></div>
+          <div class="st">📦 Materiales <span class="badge">6</span></div>
+          <div class="st">🖥 Programación <span class="badge">3</span></div>
+          <div class="st">📡 Enlace <span class="badge">3</span></div>
+        </div>
+
+        <div class="kanban">
+          <div class="kcol">
+            <div class="khead">Por hacer <span class="cnt">1</span></div>
+            <div class="kcard">
+              <div class="t">Recibir respuesta del organismo</div>
+              <div class="meta"><span class="mini-avatar">CA</span><span class="tag">externo</span></div>
+            </div>
+          </div>
+          <div class="kcol">
+            <div class="khead">En progreso <span class="cnt">1</span></div>
+            <div class="kcard">
+              <div class="t">Seguimiento con la municipalidad</div>
+              <div class="meta"><span class="mini-avatar">CA</span><span class="tag">llamada / correo</span></div>
+            </div>
+          </div>
+          <div class="kcol">
+            <div class="khead">En revisión <span class="cnt">0</span></div>
+            <div class="placeholder" style="height:40px;">arrastra aquí</div>
+          </div>
+          <div class="kcol">
+            <div class="khead">Hecho <span class="cnt">2</span></div>
+            <div class="kcard">
+              <div class="t">Preparar expediente</div>
+              <div class="meta"><span class="mini-avatar">CA</span><span class="tag">doc</span></div>
+            </div>
+            <div class="kcard">
+              <div class="t">Ingresar solicitud al organismo</div>
+              <div class="meta"><span class="mini-avatar">CA</span><span class="tag">folio ———</span></div>
+            </div>
+          </div>
+        </div>
+        <span class="anotacion">Mismo patrón Kanban que Desarrollo/Firmware: columnas Por hacer · En progreso · En revisión · Hecho, tarjetas arrastrables</span>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 4 · BODEGA ══════════════ -->
+<section id="p4" class="pantalla">
+  <h1 class="titulo-pantalla">4 · Módulo Bodega — solicitudes y despachos</h1>
+  <p class="contexto">Reemplaza WhatsApp/correo: las solicitudes de materiales llegan como cola de trabajo con pipeline completo, y el estado se refleja solo en el proyecto.</p>
+  <span class="dolor"><b>Dolor que ataca:</b> "todo manual en Defontana, solicitudes y despachos por WhatsApp o correo"</span>
+
+  <div class="marco">
+    <div class="app-header"><div class="logo-wf">LOGO</div><div class="tabs"><span class="on">Bodega</span></div><div class="avatar">EB</div></div>
+    <div class="cuerpo">
+      <div class="sidebar-wf">
+        <div class="item on">Solicitudes</div>
+        <div class="item">Órdenes de compra</div>
+        <div class="item">Despachos</div>
+        <div class="item">Stock</div>
+      </div>
+      <main class="contenido">
+        <div class="fila">
+          <div class="caja kpi"><div class="num">6</div><div class="lbl">Solicitudes nuevas</div></div>
+          <div class="caja kpi"><div class="num">3</div><div class="lbl">Esperando pago</div></div>
+          <div class="caja kpi"><div class="num">2</div><div class="lbl">Por despachar</div></div>
+        </div>
+
+        <div class="caja" style="margin-bottom:12px;">
+          <h3>Solicitud #—— · Proyecto: Semáforo Av. ——— · Coordinador: Coord. A</h3>
+          <div class="pipeline">
+            <div class="paso hecho">Solicitud</div><div class="conector"></div>
+            <div class="paso actual">Cotización</div><div class="conector"></div>
+            <div class="paso">Orden de compra</div><div class="conector"></div>
+            <div class="paso">Pago</div><div class="conector"></div>
+            <div class="paso">Recepción</div><div class="conector"></div>
+            <div class="paso">Despacho</div>
+          </div>
+          <table class="wf">
+            <tr><th>Ítem</th><th>Cant.</th><th>Cotización</th><th>Estado</th></tr>
+            <tr><td>Controlador ———</td><td>2</td><td>$ ———</td><td><span class="chip">2 proveedores</span></td></tr>
+            <tr><td>Poste / gabinete ———</td><td>8</td><td>$ ———</td><td><span class="chip">pendiente</span></td></tr>
+          </table>
+          <div style="margin-top:8px;"><span class="btn-wf primario">Avanzar etapa</span> <span class="btn-wf">Adjuntar cotización</span> <span class="btn-wf">Comentar al coordinador</span></div>
+          <span class="anotacion">Cada avance de etapa notifica al coordinador y suma el costo al proyecto (visible por el subgerente)</span>
+        </div>
+
+        <div class="caja" style="margin-bottom:12px;">
+          <h3>Cola de solicitudes</h3>
+          <table class="wf">
+            <tr><th>#</th><th>Proyecto</th><th>Solicitante</th><th>Etapa</th><th>Días en etapa</th></tr>
+            <tr><td>—</td><td>CCTV Ruta ———</td><td>Coord. B</td><td><span class="chip negro">Solicitud</span></td><td>1</td></tr>
+            <tr><td>—</td><td>Modificación ———</td><td>Coord. B</td><td><span class="chip">Pago</span></td><td>4</td></tr>
+            <tr><td>—</td><td>Semáforo Av. ———</td><td>Coord. A</td><td><span class="chip">Cotización</span></td><td>2</td></tr>
+          </table>
+        </div>
+
+        <!-- Inventario de Bodega -->
+        <div class="caja">
+          <div class="fila" style="align-items:center; margin-bottom:8px;">
+            <h3 style="margin:0;">Inventario de Bodega</h3>
+            <span style="margin-left:auto;">
+              <span class="placeholder" style="width:150px; height:26px; display:inline-flex;">buscar ítem…</span>
+              <span class="chip">Categoría ▾</span>
+              <span class="chip">Proyecto ▾</span>
+              <span class="btn-wf">Exportar Excel</span>
+              <span class="btn-wf primario">+ Ítem</span>
+            </span>
+          </div>
+          <table class="wf">
+            <tr><th>Ítem</th><th>Categoría</th><th>Cantidad</th><th>Precio unit.</th><th>Precio total</th><th>Proyecto asociado</th><th></th></tr>
+            <tr><td><b>Controlador ———</b></td><td><span class="tag">Equipo</span></td><td>2</td><td>$ ———</td><td>$ ———</td><td>Semáforo Av. ———</td><td><span class="tag">despachar ▸</span></td></tr>
+            <tr><td><b>Gabinete / poste ———</b></td><td><span class="tag">Estructura</span></td><td>8</td><td>$ ———</td><td>$ ———</td><td>Semáforo Av. ———</td><td><span class="tag">en OC</span></td></tr>
+            <tr><td><b>Cable ———</b></td><td><span class="tag">Insumo</span></td><td>200 m</td><td>$ ———</td><td>$ ———</td><td>Modificación ———</td><td><span class="tag">en stock</span></td></tr>
+            <tr><td><b>Cámara CCTV ———</b></td><td><span class="tag">Equipo</span></td><td>4</td><td>$ ———</td><td>$ ———</td><td>CCTV Ruta ———</td><td><span class="tag">cotizando</span></td></tr>
+            <tr><td><b>Repuesto relé ———</b></td><td><span class="tag">Repuesto</span></td><td>15</td><td>$ ———</td><td>$ ———</td><td><i>sin asignar (stock)</i></td><td><span class="tag">en stock</span></td></tr>
+            <tr style="background:#f4f4f4; font-weight:700;"><td colspan="4" style="text-align:right;">Valor total del inventario →</td><td>$ ———</td><td colspan="2"></td></tr>
+          </table>
+          <span class="anotacion">Reemplaza Defontana manual: nombre, precio, cantidad, precio total y <b>proyecto asociado</b>, igual que el Inventario de Desarrollo (con export Excel)</span>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 5 · SERVICIO TÉCNICO ══════════════ -->
+<section id="p5" class="pantalla">
+  <h1 class="titulo-pantalla">5 · Servicio Técnico / Mantención — Kanban de Manufactura</h1>
+  <p class="contexto">El corazón del módulo es un <b>Kanban de Manufactura</b> de tableros/controladores (como en el prototipo legacy), más los tableros de programación y enlaces. La manufactura queda documentada con ficha y adjuntos; el feedback deja de ser verbal.</p>
+  <span class="dolor"><b>Dolor que ataca:</b> "manufactura por instrucciones verbales, sin documentar" · "flujo manual, acceso fijo desde oficina" · "no existen canales de feedback, solo verbal"</span>
+
+  <div class="marco">
+    <div class="app-header"><div class="logo-wf">LOGO</div><div class="tabs"><span class="on">Servicio Técnico</span></div><div class="avatar">ST</div></div>
+    <div class="cuerpo">
+      <div class="sidebar-wf">
+        <div class="item on">Kanban Manufactura</div>
+        <div class="item">Programaciones</div>
+        <div class="item">Enlaces</div>
+        <div class="item">Fichas de hardware</div>
+        <div class="item">Feedback</div>
+      </div>
+      <main class="contenido">
+        <div class="fila" style="align-items:center;">
+          <h2 style="font-size:15px;">🛠 Kanban de Manufactura — Tableros / Controladores</h2>
+          <span style="margin-left:auto;">
+            <span class="placeholder" style="width:150px; height:26px; display:inline-flex;">filtrar proyecto…</span>
+            <span class="btn-wf primario">+ Orden de manufactura</span>
+          </span>
+        </div>
+
+        <!-- Kanban principal de manufactura (estilo legacy: columnas de estado) -->
+        <div class="kanban" style="margin-bottom:14px;">
+          <div class="kcol">
+            <div class="khead">Recepción / Cola <span class="cnt">2</span></div>
+            <div class="kcard">
+              <div class="t">Controlador — CCTV Ruta ———</div>
+              <div class="meta"><span class="tag">Modelo ———</span></div>
+              <div class="meta" style="margin-top:4px;"><span class="mini-avatar">PT</span><span class="tag">sin asignar</span></div>
+            </div>
+            <div class="kcard">
+              <div class="t">Controlador — Semáforo Av. ———</div>
+              <div class="meta"><span class="tag negro" style="background:#555;color:#fff;">Bloqueado: sin estudio vial</span></div>
+            </div>
+          </div>
+          <div class="kcol">
+            <div class="khead">Programación <span class="cnt">1</span></div>
+            <div class="kcard">
+              <div class="t">Modificación ———</div>
+              <div class="meta"><span class="mini-avatar">PT</span><span class="tag">programando</span></div>
+              <div class="meta" style="margin-top:4px;"><span class="tag">plan de fases ✓</span></div>
+            </div>
+          </div>
+          <div class="kcol">
+            <div class="khead">Armado / Cableado <span class="cnt">1</span></div>
+            <div class="kcard">
+              <div class="t">Tablero ——— (Modificación)</div>
+              <div class="meta"><span class="mini-avatar">TC</span><span class="tag">relés</span></div>
+            </div>
+          </div>
+          <div class="kcol">
+            <div class="khead">Prueba en banco <span class="cnt">1</span></div>
+            <div class="kcard">
+              <div class="t">Controlador ——— v2</div>
+              <div class="meta"><span class="tag">re-prueba (feedback)</span></div>
+            </div>
+          </div>
+          <div class="kcol">
+            <div class="khead">Listo / Despacho <span class="cnt">2</span></div>
+            <div class="kcard">
+              <div class="t">Controlador ——— APROBADO</div>
+              <div class="meta"><span class="tag">firmado ✓</span></div>
+            </div>
+            <div class="kcard">
+              <div class="t">Enlace ——— operativo</div>
+              <div class="meta"><span class="tag">a terreno</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fila">
+          <div class="caja" style="flex:1; min-width:260px;">
+            <h3>Ficha de manufactura — Controlador ——— (abre desde la tarjeta)</h3>
+            <div class="subtarea"><span class="check si"></span> Plan de fases cargado (adjunto)</div>
+            <div class="subtarea"><span class="check si"></span> Tabla de tiempos verificada</div>
+            <div class="subtarea"><span class="check"></span> Prueba de relés</div>
+            <div class="subtarea"><span class="check"></span> Prueba en banco firmada</div>
+            <div class="placeholder" style="height:50px; margin-top:8px;">adjuntos: programación, fotos, esquema</div>
+            <span class="anotacion">Fin de la instrucción verbal: cualquier técnico retoma la orden</span>
+          </div>
+          <div class="caja" style="flex:1; min-width:260px;">
+            <h3>Ficha de hardware por cruce (logística de repuestos)</h3>
+            <table class="wf">
+              <tr><th>Cruce</th><th>Controlador</th><th>Gateway</th><th></th></tr>
+              <tr><td>———</td><td>Modelo ———</td><td>Modelo ———</td><td><span class="tag">detalle ▸</span></td></tr>
+              <tr><td>———</td><td>Modelo ———</td><td>—</td><td><span class="tag">detalle ▸</span></td></tr>
+            </table>
+            <span class="anotacion">Conecta con Directorio de Gateways e Inventario existentes</span>
+          </div>
+          <div class="caja" style="flex:1; min-width:260px;">
+            <h3>Feedback (canal formal, no verbal)</h3>
+            <div class="hito"><div class="punto"></div><div><b>Terreno</b>: plan nocturno requiere ajuste fase 3<br><span class="fecha">Técnico ——— · hoy</span></div></div>
+            <div class="hito"><div class="punto"></div><div><b>Supervisora</b>: corregido v2, re-probar<br><span class="fecha">Supervisora Técnica · hoy</span></div></div>
+            <div class="placeholder" style="height:30px; margin-top:8px;">escribir feedback…</div>
+            <span class="anotacion">Accesible desde terreno (móvil), no solo desde la oficina</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 6 · MÓVIL TERRENO ══════════════ -->
+<section id="p6" class="pantalla">
+  <h1 class="titulo-pantalla">6 · Técnico en terreno — vista móvil</h1>
+  <p class="contexto">Acceso desde cualquier lugar (no solo la oficina): ficha del cruce, hardware instalado y repuestos sugeridos antes de salir.</p>
+  <span class="dolor"><b>Dolor que ataca:</b> "en terreno no hay claridad del tipo de hardware, dificulta la logística de repuestos" · "acceso fijo desde la oficina"</span>
+
+  <div class="movil">
+    <div class="notch"></div>
+    <div class="caja" style="margin-bottom:10px;">
+      <h3>Cruce ——— · Av. ———</h3>
+      <span class="chip">Controlador: Modelo ———</span>
+      <span class="chip">Gateway: ———</span>
+      <div class="linea" style="margin-top:10px;"></div>
+      <div class="linea corta"></div>
+    </div>
+    <div class="caja" style="margin-bottom:10px;">
+      <h3>Hardware instalado</h3>
+      <div class="subtarea"><span class="check si"></span> Controlador ——— (s/n ———)</div>
+      <div class="subtarea"><span class="check si"></span> Gateway ——— (SIM ———)</div>
+      <div class="subtarea"><span class="check si"></span> 8 × cabezales tipo ———</div>
+      <span class="anotacion">Sincronizado con Inventario</span>
+    </div>
+    <div class="caja" style="margin-bottom:10px;">
+      <h3>Repuestos sugeridos para esta visita</h3>
+      <div class="subtarea"><span class="check"></span> Relé ——— ×2</div>
+      <div class="subtarea"><span class="check"></span> Fuente ——— ×1</div>
+    </div>
+    <div class="caja">
+      <h3>Programación vigente</h3>
+      <div class="placeholder" style="height:44px;">ver / descargar programación v—</div>
+      <div style="margin-top:8px;"><span class="btn-wf primario" style="width:100%; text-align:center;">Enviar feedback de terreno</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 7 · MAPA DEL FLUJO ══════════════ -->
+<section id="p7" class="pantalla">
+  <h1 class="titulo-pantalla">7 · Mapa del flujo completo (referencia)</h1>
+  <p class="contexto">Cómo se conectan los actores y módulos. Las flechas discontinuas indican dependencias que pueden bloquearse (proceso no lineal).</p>
+
+  <div class="marco" style="padding:24px;">
+    <div class="pipeline" style="justify-content:center; margin-bottom:20px;">
+      <div class="paso" style="min-width:130px;">VENTAS<br><small>consigue cliente y acuerda</small></div>
+      <div class="conector"></div>
+      <div class="paso" style="min-width:130px;">REQUERIMIENTOS<br><small>alcance para ejecución</small></div>
+      <div class="conector"></div>
+      <div class="paso actual" style="min-width:150px;">SUBGERENTE TÉCNICO<br><small>supervisa y asigna (Javier)</small></div>
+      <div class="conector"></div>
+      <div class="paso" style="min-width:140px;">COORDINADORES<br><small>gestionan los tracks</small></div>
+    </div>
+
+    <div class="tracks" style="max-width:900px; margin:0 auto;">
+      <div class="caja track" style="border-style:dashed;">
+        <h4>🏛 Permisos</h4>
+        <p style="font-size:11px; color:#777;">Con <b>entes externos</b> a la organización. Riesgo: tiempos de terceros.</p>
+      </div>
+      <div class="caja track">
+        <h4>📦 Materiales → Bodega</h4>
+        <p style="font-size:11px; color:#777;">Solicitud → Cotización → OC → Pago → Recepción → Despacho.</p>
+      </div>
+      <div class="caja track" style="border-style:dashed;">
+        <h4>🖥 Programaciones → Serv. Técnico</h4>
+        <p style="font-size:11px; color:#777;">Requiere <b>estudio vial</b> previo; puede bloquearse.</p>
+      </div>
+      <div class="caja track">
+        <h4>📡 Enlaces → Serv. Técnico</h4>
+        <p style="font-size:11px; color:#777;">Solicitud y configuración del enlace del cruce.</p>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:20px;">
+      <span class="chip">FASE INICIO</span> → <span class="chip">FASE GESTIÓN</span> → <span class="chip">FASE EJECUCIÓN</span>
+      <p style="font-size:11px; color:#888; margin-top:8px;">No lineal: los tracks avanzan en paralelo y un bloqueo (permiso, estudio vial) no detiene el resto.</p>
+    </div>
+  </div>
+
+  <div class="leyenda">
+    <b>Resumen de dolores → solución:</b>
+    Subgerente: dashboard de costos/hitos/estado global (pantalla 1) ·
+    Coordinador: bitácora de hitos y tracks documentados para traspasos (pantalla 3) ·
+    Bodega: pipeline de solicitudes en vez de WhatsApp/correo (pantalla 4) ·
+    Supervisora/Técnicos: manufactura documentada, feedback formal y acceso móvil (pantallas 5 y 6).
+  </div>
+</section>
+
+<script>
+  const botones = document.querySelectorAll("nav.pantallas button");
+  function ir(id) {
+    botones.forEach((x) => x.classList.toggle("activo", x.dataset.p === id));
+    document.querySelectorAll(".pantalla").forEach((p) => p.classList.remove("visible"));
+    document.getElementById(id).classList.add("visible");
+    window.scrollTo(0, 0);
+  }
+  botones.forEach((b) => b.addEventListener("click", () => ir(b.dataset.p)));
+  // Disponible para los botones "Abrir Kanban ▸" / "‹ Volver" dentro de las pantallas.
+  window.ir = ir;
+</script>
+</body>
+</html>

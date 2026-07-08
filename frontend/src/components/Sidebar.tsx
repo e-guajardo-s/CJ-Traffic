@@ -71,6 +71,25 @@ const ICONO_SUBVISTA: Record<SubVista, ReactNode> = {
       <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
     </>,
   ),
+  troubleshooting: icono(
+    <>
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </>,
+  ),
+  tablero: icono(
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <line x1="15" y1="3" x2="15" y2="21" />
+    </>,
+  ),
+  panel: icono(
+    <>
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </>,
+  ),
 };
 
 export default function Sidebar({ modulo }: { modulo: Modulo }) {

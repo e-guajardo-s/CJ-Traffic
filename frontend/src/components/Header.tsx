@@ -67,6 +67,11 @@ const ICONS: Record<Modulo, ReactNode> = {
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
+  proyectos_empresa: (
+    <svg className="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
 };
 
 const ROL_COLOR: Record<string, string> = {
@@ -98,7 +103,8 @@ export default function Header({
     <header className="h-16 shrink-0 bg-white border-b border-neutral-200 flex items-center justify-between px-6 gap-6">
       <div className="flex items-center gap-8 min-w-0">
         <div className="flex items-center gap-2 shrink-0">
-          <img src="/logo.png" alt="CJ Traffic" className="h-8 w-auto" />
+          <img src="/logo.png" alt="CJ Traffic" className="h-8 w-auto dark:hidden" />
+          <img src="/logo2.png" alt="CJ Traffic" className="hidden h-8 w-auto dark:block" />
         </div>
 
         <nav className="flex items-center gap-1">

@@ -305,3 +305,101 @@ iotRouter.delete("/cruces/:cruceId", requireAuth, requireModulo("iot", "ESCRITUR
 
   res.status(204).send();
 });
+
+// ───────────────────────── Troubleshooting Bitacora de Fallas ─────────────────────────
+
+iotRouter.get("/troubleshooting", requireAuth, requireModulo("iot", "LECTURA"), async (_req, res) => {
+  const incidencias = await prisma.incidenciaTroubleshooting.findMany({
+    include: {
+      proyecto: { select: { id: true, nombre: true } },
+      autor: { select: { id: true, nombre: true } }
+    },
+    orderBy: { fecha: "desc" }
+  });
+  res.json(incidencias);
+});
+
+iotRouter.post("/troubleshooting", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
+  const { titulo, tipo, descripcion, accionTomada, estado, proyectoId } = req.body ?? {};
+  if (!titulo || !tipo || !descripcion || !estado) {
+    return res.status(400).json({ error: "titulo, tipo, descripcion y estado son requeridos" });
+  }
+  const incidencia = await prisma.incidenciaTroubleshooting.create({
+    data: {
+      titulo,
+      tipo,
+      descripcion,
+      accionTomada: accionTomada || null,
+      estado,
+      proyectoId: proyectoId ? Number(proyectoId) : null,
+      autorId: req.user!.sub,
+    },
+    include: {
+      proyecto: { select: { id: true, nombre: true } },
+      autor: { select: { id: true, nombre: true } }
+    }
+  });
+
+  await registrarBitacora({
+    autorId: req.user!.sub,
+    accion: "troubleshooting.crear",
+    entidad: "IncidenciaTroubleshooting",
+    entidadId: incidencia.id,
+    detalle: { incidencia },
+  });
+
+  res.status(201).json(incidencia);
+});
+
+iotRouter.patch("/troubleshooting/:id", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
+  const id = Number(req.params.id);
+  const { titulo, tipo, descripcion, accionTomada, estado, proyectoId } = req.body ?? {};
+  
+  const existente = await prisma.incidenciaTroubleshooting.findUnique({ where: { id } });
+  if (!existente) return res.status(404).json({ error: "Incidencia no encontrada" });
+
+  const incidencia = await prisma.incidenciaTroubleshooting.update({
+    where: { id },
+    data: {
+      titulo: titulo !== undefined ? titulo : existente.titulo,
+      tipo: tipo !== undefined ? tipo : existente.tipo,
+      descripcion: descripcion !== undefined ? descripcion : existente.descripcion,
+      accionTomada: accionTomada !== undefined ? (accionTomada || null) : existente.accionTomada,
+      estado: estado !== undefined ? estado : existente.estado,
+      proyectoId: proyectoId !== undefined ? (proyectoId ? Number(proyectoId) : null) : existente.proyectoId,
+    },
+    include: {
+      proyecto: { select: { id: true, nombre: true } },
+      autor: { select: { id: true, nombre: true } }
+    }
+  });
+
+  await registrarBitacora({
+    autorId: req.user!.sub,
+    accion: "troubleshooting.actualizar",
+    entidad: "IncidenciaTroubleshooting",
+    entidadId: id,
+    detalle: { anterior: existente, nueva: incidencia },
+  });
+
+  res.json(incidencia);
+});
+
+iotRouter.delete("/troubleshooting/:id", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
+  const id = Number(req.params.id);
+  
+  const existente = await prisma.incidenciaTroubleshooting.findUnique({ where: { id } });
+  if (!existente) return res.status(404).json({ error: "Incidencia no encontrada" });
+
+  await prisma.incidenciaTroubleshooting.delete({ where: { id } });
+
+  await registrarBitacora({
+    autorId: req.user!.sub,
+    accion: "troubleshooting.eliminar",
+    entidad: "IncidenciaTroubleshooting",
+    entidadId: id,
+    detalle: { incidencia: existente },
+  });
+
+  res.status(204).send();
+});

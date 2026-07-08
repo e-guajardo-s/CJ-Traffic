@@ -67,6 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function puede(modulo: string, nivel: Nivel) {
+    // Proyectos empresa es accesible a todos los usuarios autenticados
+    if (modulo === "proyectos_empresa") return true;
     return RANGO[permisos[modulo] ?? "OCULTO"] >= RANGO[nivel];
   }
 

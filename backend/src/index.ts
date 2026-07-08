@@ -8,6 +8,7 @@ import { firmwareRouter } from "./routes/firmware";
 import { adminRouter } from "./routes/admin";
 import { inventarioRouter } from "./routes/inventario";
 import { proyectosRouter } from "./routes/proyectos";
+import { obrasRouter } from "./routes/obras";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,6 +49,7 @@ app.use("/iot/inventario", inventarioRouter);
 app.use("/firmware", firmwareRouter);
 app.use("/admin", adminRouter);
 app.use("/proyectos", proyectosRouter);
+app.use("/proyectos-empresa", obrasRouter);
 
 app.listen(PORT, () => {
   console.log(`API escuchando en http://localhost:${PORT}`);

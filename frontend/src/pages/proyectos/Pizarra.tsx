@@ -172,6 +172,9 @@ export default function PizarraBoard({
   const actualRef = useRef<Elemento | null>(null);
   const vistaRef = useRef({ x: 0, y: 0, escala: 1 });
   const panRef = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
+  const textoAreaRef = useRef<HTMLTextAreaElement>(null);
+  const textoPendienteRef = useRef<{ wx: number; wy: number; sx: number; sy: number } | null>(null);
+  const textoAbiertoEnRef = useRef(0);
 
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -275,14 +278,13 @@ export default function PizarraBoard({
   }
 
   function confirmarTexto() {
-    setTextoEdit((t) => {
-      if (t && t.valor.trim()) {
-        elementosRef.current.push({ tipo: "texto", x: t.wx, y: t.wy, texto: t.valor.trim(), color, tam: TAM_TEXTO[grosor] ?? 22 });
-        setSinGuardar(true);
-        redibujar();
-      }
-      return null;
-    });
+    const t = textoEdit;
+    setTextoEdit(null);
+    if (t && t.valor.trim()) {
+      elementosRef.current.push({ tipo: "texto", x: t.wx, y: t.wy, texto: t.valor.trim(), color, tam: TAM_TEXTO[grosor] ?? 22 });
+      setSinGuardar(true);
+      redibujar();
+    }
     setVersion((v) => v + 1);
   }
 
@@ -301,17 +303,21 @@ export default function PizarraBoard({
     if (!puedeEscribir || e.button !== 0) return;
 
     const [x, y] = aMundo(e);
+
+    if (herramienta === "texto") {
+      // El editor se abre recién en pointerUp (semántica de click): si se abriera
+      // aquí, el mismo click que lo crea puede robarle el foco y cerrarlo al instante.
+      const rect = canvasRef.current!.getBoundingClientRect();
+      textoPendienteRef.current = { wx: x, wy: y, sx: e.clientX - rect.left, sy: e.clientY - rect.top };
+      return;
+    }
+
     e.currentTarget.setPointerCapture(e.pointerId);
 
     if (herramienta === "borrador") {
       borrarEn(x, y);
       panRef.current = null;
       actualRef.current = { tipo: "trazo", color: "transparent", grosor: 0, puntos: [] }; // marca "arrastrando borrador"
-      return;
-    }
-    if (herramienta === "texto") {
-      const rect = canvasRef.current!.getBoundingClientRect();
-      setTextoEdit({ wx: x, wy: y, sx: e.clientX - rect.left, sy: e.clientY - rect.top, valor: "" });
       return;
     }
     if (herramienta === "lapiz") {
@@ -351,6 +357,16 @@ export default function PizarraBoard({
 
   function onPointerUp() {
     panRef.current = null;
+
+    // La herramienta de texto abre el editor al soltar el click.
+    if (textoPendienteRef.current) {
+      const p = textoPendienteRef.current;
+      textoPendienteRef.current = null;
+      textoAbiertoEnRef.current = Date.now();
+      setTextoEdit({ ...p, valor: "" });
+      return;
+    }
+
     const actual = actualRef.current;
     actualRef.current = null;
     if (!actual || herramienta === "borrador") {
@@ -462,15 +478,55 @@ export default function PizarraBoard({
     a.click();
   }
 
-  const HERRAMIENTAS: { id: Herramienta; nombre: string; icono: string; soloEscritura: boolean }[] = [
-    { id: "mano", nombre: "Mover lienzo", icono: "✋", soloEscritura: false },
-    { id: "lapiz", nombre: "Lápiz", icono: "✏️", soloEscritura: true },
-    { id: "rect", nombre: "Rectángulo (proceso)", icono: "▭", soloEscritura: true },
-    { id: "elipse", nombre: "Elipse (inicio/fin)", icono: "◯", soloEscritura: true },
-    { id: "rombo", nombre: "Rombo (decisión)", icono: "◇", soloEscritura: true },
-    { id: "flecha", nombre: "Flecha (flujo)", icono: "→", soloEscritura: true },
-    { id: "texto", nombre: "Texto", icono: "T", soloEscritura: true },
-    { id: "borrador", nombre: "Borrador", icono: "🧹", soloEscritura: true },
+  const HERRAMIENTAS: { id: Herramienta; nombre: string; icono: React.ReactNode; soloEscritura: boolean }[] = [
+    { 
+      id: "mano", 
+      nombre: "Mover lienzo", 
+      icono: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 11c0-.55-.45-1-1-1s-1 .45-1 1v3.5m0-3.5c0-.55-.45-1-1-1s-1 .45-1 1V13m4-6c0-.55-.45-1-1-1s-1 .45-1 1v8m5-6c0-.55-.45-1-1-1s-1 .45-1 1v4.5M6 14c0-3.5 2-5 5-5s5 1.5 5 5v5a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-3z"/></svg>, 
+      soloEscritura: false 
+    },
+    { 
+      id: "lapiz", 
+      nombre: "Lápiz", 
+      icono: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>, 
+      soloEscritura: true 
+    },
+    { 
+      id: "rect", 
+      nombre: "Rectángulo (proceso)", 
+      icono: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>, 
+      soloEscritura: true 
+    },
+    { 
+      id: "elipse", 
+      nombre: "Elipse (inicio/fin)", 
+      icono: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>, 
+      soloEscritura: true 
+    },
+    { 
+      id: "rombo", 
+      nombre: "Rombo (decisión)", 
+      icono: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2L2 12l10 10 10-10L12 2z"/></svg>, 
+      soloEscritura: true 
+    },
+    { 
+      id: "flecha", 
+      nombre: "Flecha (flujo)", 
+      icono: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>, 
+      soloEscritura: true 
+    },
+    { 
+      id: "texto", 
+      nombre: "Texto", 
+      icono: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>, 
+      soloEscritura: true 
+    },
+    { 
+      id: "borrador", 
+      nombre: "Borrador", 
+      icono: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 20H7L3 16c-1-1-1-2 0-3l7-7c1-1 2-1 3 0l7 7c1 1 1 2 0 3l-4 4z"/><line x1="18" y1="12" x2="12" y2="18"/></svg>, 
+      soloEscritura: true 
+    },
   ];
 
   const btnHerr = (activo: boolean) =>
@@ -547,10 +603,12 @@ export default function PizarraBoard({
               ))}
             </div>
             <div className="h-5 w-px bg-neutral-200" />
-            <button onClick={deshacer} disabled={elementosRef.current.length === 0} className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg border bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40" title="Deshacer último elemento">
-              ↩ Deshacer
+            <button onClick={deshacer} disabled={elementosRef.current.length === 0} className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 cursor-pointer" title="Deshacer último elemento">
+              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+              Deshacer
             </button>
-            <button onClick={limpiar} disabled={elementosRef.current.length === 0} className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg border bg-white border-neutral-200 text-red-600 hover:bg-neutral-50 disabled:opacity-40" title="Borrar todo">
+            <button onClick={limpiar} disabled={elementosRef.current.length === 0} className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border bg-white border-neutral-200 text-red-600 hover:bg-neutral-50 disabled:opacity-40 cursor-pointer" title="Borrar todo">
+              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               Limpiar
             </button>
           </>
@@ -578,10 +636,20 @@ export default function PizarraBoard({
         />
         {textoEdit && (
           <textarea
+            ref={textoAreaRef}
             autoFocus
             value={textoEdit.valor}
             onChange={(e) => setTextoEdit((t) => (t ? { ...t, valor: e.target.value } : t))}
-            onBlur={confirmarTexto}
+            onPointerDown={(e) => e.stopPropagation()}
+            onBlur={() => {
+              // Un blur inmediatamente después de abrir es el rebote del mismo
+              // click que creó el editor: se recupera el foco en vez de cerrar.
+              if (Date.now() - textoAbiertoEnRef.current < 300) {
+                requestAnimationFrame(() => textoAreaRef.current?.focus());
+                return;
+              }
+              confirmarTexto();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

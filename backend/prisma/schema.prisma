@@ -29,13 +29,26 @@ model Usuario {
   rol          Rol    @relation(fields: [rolId], references: [id])
   rolId        Int
 
-  programacionesSubidas Programacion[] @relation("SubidoPor")
+  programacionesSubidas Programacion[]  @relation("SubidoPor")
   feedbacks             Feedback[]
   bitacora              BitacoraEntry[]
 
-  proyectosResponsable Proyecto[]       @relation("ProyectoResponsable")
-  proyectoPaginas      ProyectoPagina[] @relation("ProyectoPaginaAutor")
-  proyectoTareas       ProyectoTarea[]  @relation("ProyectoTareaAsignado")
+  proyectosResponsable     Proyecto[]                  @relation("ProyectoResponsable")
+  proyectoPaginas          ProyectoPagina[]            @relation("ProyectoPaginaAutor")
+  proyectoTareas           ProyectoTarea[]             @relation("ProyectoTareaAsignado")
+  troubleshootingReportado IncidenciaTroubleshooting[] @relation("TroubleshootingAutor")
+
+  // Proyectos generales de empresa
+  proyectosEmpresaResponsable ProyectoEmpresa[] @relation("ProyectoEmpresaResponsable")
+  notasEmpresa                NotaEmpresa[]     @relation("NotaEmpresaAutor")
+
+  // Obras (Operativo)
+  obrasComoSubgerente   Obra[]              @relation("ObraSubgerente")
+  obrasComoCoordinador  Obra[]              @relation("ObraCoordinador")
+  obraTracksResponsable ObraTrack[]         @relation("ObraTrackResponsable")
+  solicitudesMaterial   SolicitudMaterial[] @relation("SolicitudMaterialAutor")
+  programacionesObra    ProgramacionObra[]  @relation("ProgramacionObraAutor")
+  obraBitacoras         ObraBitacora[]      @relation("ObraBitacoraAutor")
 }
 
 // ───────────────────────── RBAC (§7, §9 informe) ─────────────────────────
@@ -78,9 +91,9 @@ model Cruce {
   controlador String // ej. "Auter A5"
   createdAt   DateTime @default(now())
 
-  gateway            GatewayIot?
-  programaciones     Programacion[]
-  unidadesAsignadas  UnidadInventario[]
+  gateway           GatewayIot?
+  programaciones    Programacion[]
+  unidadesAsignadas UnidadInventario[]
 }
 
 enum EstadoGateway {
@@ -185,27 +198,28 @@ model ItemInventario {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
-  unidades UnidadInventario[]
+  unidades       UnidadInventario[]
+  itemSolicituds ItemSolicitud[]
 }
 
 model UnidadInventario {
-  id           Int            @id @default(autoincrement())
-  item         ItemInventario @relation(fields: [itemId], references: [id])
-  itemId       Int
-  codigoUnidad String // ej. "1", "SN-00123" — identifica la unidad física dentro de su item
-  cruce        Cruce?         @relation(fields: [cruceId], references: [id])
+  id              Int            @id @default(autoincrement())
+  item            ItemInventario @relation(fields: [itemId], references: [id])
+  itemId          Int
+  codigoUnidad    String // ej. "1", "SN-00123" — identifica la unidad física dentro de su item
+  cruce           Cruce?         @relation(fields: [cruceId], references: [id])
   // Un cruce puede tener varias unidades asignadas (ej. varios relés). Por eso
   // cruceId NO es único.
-  cruceId      Int?
+  cruceId         Int?
   // Ubicación física (bodega/estante) cuando la unidad NO está en un cruce.
   // Es mutuamente excluyente con cruceId: si está en terreno, ubicacionFisica es null.
   ubicacionFisica String?
   // Baja: la unidad se descompuso / se retiró de circulación. Se conserva el
   // registro con una nota justificatoria. Una unidad dada de baja no cuenta como
   // stock ni puede asignarse; al darla de baja se libera cruce y ubicación física.
-  dadaDeBaja   Boolean        @default(false)
-  notaBaja     String?
-  createdAt    DateTime       @default(now())
+  dadaDeBaja      Boolean        @default(false)
+  notaBaja        String?
+  createdAt       DateTime       @default(now())
 
   @@unique([itemId, codigoUnidad])
 }
@@ -234,11 +248,12 @@ model Proyecto {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  paginas ProyectoPagina[]
-  tareas  ProyectoTarea[]
-  tecnologias Tecnologia[]
-  componentesStack ComponenteStack[]
-  pizarra Pizarra?
+  paginas                    ProyectoPagina[]
+  tareas                     ProyectoTarea[]
+  tecnologias                Tecnologia[]
+  componentesStack           ComponenteStack[]
+  pizarra                    Pizarra?
+  incidenciasTroubleshooting IncidenciaTroubleshooting[]
 }
 
 // Pizarra de bocetos y planificación: lienzo vectorial (JSON) que el frontend
@@ -305,41 +320,272 @@ model BitacoraEntry {
 }
 
 model Tecnologia {
-  id            Int              @id @default(autoincrement())
-  nombre        String           // Ej: "Botonera Peatonal Inteligente"
-  descripcion   String?          // Ej: "Sistema de pulsador con respuesta acústica y telemetría"
-  categoria     String           // HARDWARE, SOFTWARE, COMUNICACIONES
-  archivos      ArchivoTecnico[] // Aquí se guardan los múltiples manuales
-  
+  id          Int              @id @default(autoincrement())
+  nombre      String // Ej: "Botonera Peatonal Inteligente"
+  descripcion String? // Ej: "Sistema de pulsador con respuesta acústica y telemetría"
+  categoria   String // HARDWARE, SOFTWARE, COMUNICACIONES
+  archivos    ArchivoTecnico[] // Aquí se guardan los múltiples manuales
+
   // Relación inversa con los proyectos que utilizan esta tecnología
-  proyectos     Proyecto[]       
-  fechaCreacion DateTime         @default(now())
+  proyectos     Proyecto[]
+  fechaCreacion DateTime   @default(now())
 }
 
 model ArchivoTecnico {
-  id           Int        @id @default(autoincrement())
-  nombre       String     // Ej: "Manual de Instalación Eléctrica", "Guía de Configuración MQTT"
-  url          String     // Ruta del archivo
-  extension    String     // pdf, docx, etc.
-  
+  id        Int    @id @default(autoincrement())
+  nombre    String // Ej: "Manual de Instalación Eléctrica", "Guía de Configuración MQTT"
+  url       String // Ruta del archivo
+  extension String // pdf, docx, etc.
+
   tecnologiaId Int
   tecnologia   Tecnologia @relation(fields: [tecnologiaId], references: [id], onDelete: Cascade)
-  
-  fechaSubida  DateTime   @default(now())
+
+  fechaSubida DateTime @default(now())
 }
 
 model ComponenteStack {
-  id          Int      @id @default(autoincrement())
-  capa        String   // 'HARDWARE', 'RED', 'PROCESAMIENTO', 'VISUALIZACION'
-  nombre      String   // Ej: "Cámara Jetson Nano", "MQTT Broker AWS", "React App"
-  detalles    String?  // Notas breves ej: "Inferencia YOLOv3-tiny local"
-  
-  proyectoId  Int
-  proyecto    Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  id       Int     @id @default(autoincrement())
+  capa     String // 'HARDWARE', 'RED', 'PROCESAMIENTO', 'VISUALIZACION'
+  nombre   String // Ej: "Cámara Jetson Nano", "MQTT Broker AWS", "React App"
+  detalles String? // Notas breves ej: "Inferencia YOLOv3-tiny local"
+
+  proyectoId Int
+  proyecto   Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
 }
 
 model TerminoGlosario {
+  id         Int    @id @default(autoincrement())
+  termino    String @unique // Ej: "MQTT", "YOLOv3", "PLC"
+  definicion String // Ej: "Protocolo de mensajería en tiempo real usado para conectar los cruces con la nube."
+}
+
+model IncidenciaTroubleshooting {
+  id           Int      @id @default(autoincrement())
+  titulo       String // Ej: "Falla de lectura RS485 en sensor de flujo"
+  tipo         String // "HARDWARE" o "SOFTWARE"
+  descripcion  String // Detalles de la falla
+  accionTomada String? // Solución temporal o definitiva (opcional)
+  estado       String // "ABIERTO", "EN_PROCESO", "SOLUCIONADO"
+  fecha        DateTime @default(now())
+
+  // Vinculación opcional a un proyecto
+  proyectoId Int?
+  proyecto   Proyecto? @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+
+  // Quién reportó / ingresó la falla
+  autorId Int
+  autor   Usuario @relation("TroubleshootingAutor", fields: [autorId], references: [id])
+}
+
+// ───────────────────────── Proyectos Generales de Empresa ───────────────
+// Módulo independiente de Desarrollo. Accesible a todos los roles.
+
+model ProyectoEmpresa {
+  id            Int            @id @default(autoincrement())
+  nombre        String
+  descripcion   String?
+  estado        EstadoProyecto @default(NO_INICIADO)
+  fechaInicio   DateTime?
+  fechaFin      DateTime?
+  responsable   Usuario?       @relation("ProyectoEmpresaResponsable", fields: [responsableId], references: [id])
+  responsableId Int?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  tareas TareaEmpresa[]
+  notas  NotaEmpresa[]
+}
+
+model TareaEmpresa {
+  id                Int             @id @default(autoincrement())
+  titulo            String
+  completada        Boolean         @default(false)
+  proyectoEmpresa   ProyectoEmpresa @relation(fields: [proyectoEmpresaId], references: [id], onDelete: Cascade)
+  proyectoEmpresaId Int
+  createdAt         DateTime        @default(now())
+}
+
+model NotaEmpresa {
+  id                Int             @id @default(autoincrement())
+  contenido         String
+  autor             Usuario         @relation("NotaEmpresaAutor", fields: [autorId], references: [id])
+  autorId           Int
+  proyectoEmpresa   ProyectoEmpresa @relation(fields: [proyectoEmpresaId], references: [id], onDelete: Cascade)
+  proyectoEmpresaId Int
+  createdAt         DateTime        @default(now())
+}
+
+// ───────────────────────── OBRAS (NÚCLEO) ─────────────────────────
+
+model Obra {
+  id         Int    @id @default(autoincrement())
+  codigoObra String @unique // Ej: "OBR-2024-045"
+  nombre     String // Ej: "Semáforo Av. Kennedy / Manquehue"
+  cliente    String
+  tipoObra   String // "NUEVO_SEMAFORO", "MODIFICACION", "CCTV", etc.
+
+  // Fase de alto nivel para filtros generales (Inicio, Gestión, Ejecución, Cierre)
+  faseGlobal FaseObra @default(INICIO)
+
+  // Financiero (Resuelve el dolor de Javier)
+  presupuesto    Decimal?
+  costoAcumulado Decimal  @default(0) // Suma calculada de Órdenes de Compra y horas
+
+  // Relaciones Humanas
+  subgerenteId  Int? // Javier
+  subgerente    Usuario? @relation("ObraSubgerente", fields: [subgerenteId], references: [id])
+  coordinadorId Int? // Responsable principal asignado
+  coordinador   Usuario? @relation("ObraCoordinador", fields: [coordinadorId], references: [id])
+
+  fechaInicio  DateTime?
+  fechaEntrega DateTime? // Deadline contractual
+
+  // 1 Obra tiene muchos Tracks asíncronos y un Hilo Histórico (Bitácora)
+  tracks         ObraTrack[]
+  bitacora       ObraBitacora[]
+  solicitudes    SolicitudMaterial[]
+  programaciones ProgramacionObra[]
+  equipamiento   EquipamientoTerreno[]
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+}
+
+enum FaseObra {
+  INICIO
+  GESTION
+  EJECUCION
+  CERRADO
+}
+
+// ───────────────────────── STATE MACHINE (TRACKS) ─────────────────────────
+
+// Cada track es una instancia viva de un proceso dentro de la obra.
+model ObraTrack {
+  id                  Int       @id @default(autoincrement())
+  obraId              Int
+  tipo                TipoTrack // PERMISOS, ADQUISICIONES, PROGRAMACION, INSTALACION
+  estadoActual        String // El estado específico del track (ej. "EN_TRAMITE")
+  responsableId       Int? // Quién tiene la "pelota" ahora mismo en este track
+  ultimaActualizacion DateTime  @default(now())
+
+  obra        Obra           @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  responsable Usuario?       @relation("ObraTrackResponsable", fields: [responsableId], references: [id])
+  subtareas   ObraSubtarea[]
+}
+
+// Subtareas del track, organizadas como kanban (mismas columnas que ProyectoTarea).
+// Documentan los subprocesos del wireframe (ej. permisos: preparar expediente,
+// ingresar, respuesta, aprobado) para que cualquiera retome el track.
+model ObraSubtarea {
+  id        Int         @id @default(autoincrement())
+  track     ObraTrack   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  trackId   Int
+  titulo    String
+  estado    EstadoTarea @default(POR_HACER)
+  orden     Int         @default(0) // orden dentro de su columna
+  notas     String? // observaciones / notas de la subtarea (texto libre)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  archivos ObraSubtareaArchivo[]
+}
+
+// Documentación adjunta a una subtarea del kanban (planos, cotizaciones, fotos…).
+model ObraSubtareaArchivo {
+  id         Int          @id @default(autoincrement())
+  subtarea   ObraSubtarea @relation(fields: [subtareaId], references: [id], onDelete: Cascade)
+  subtareaId Int
+  nombre     String
+  url        String
+  extension  String
+  createdAt  DateTime     @default(now())
+}
+
+enum TipoTrack {
+  PERMISOS
+  ADQUISICIONES
+  PROGRAMACION
+  INSTALACION
+  COMUNICACIONES
+}
+
+// ───────────────────────── LOGÍSTICA & BODEGA ─────────────────────────
+// Resuelve el dolor de Bodega y los costos de Javier.
+
+model SolicitudMaterial {
+  id            Int       @id @default(autoincrement())
+  obraId        Int
+  solicitanteId Int // Coordinador que pide
+  estado        EstadoSol // SOLICITADO, COTIZANDO, ORDEN_COMPRA, RECIBIDO, DESPACHADO
+  costoTotal    Decimal? // Se llena al emitir OC. Suma al "costoAcumulado" de la Obra.
+  fechaCreacion DateTime  @default(now())
+
+  items       ItemSolicitud[]
+  obra        Obra            @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  solicitante Usuario         @relation("SolicitudMaterialAutor", fields: [solicitanteId], references: [id])
+}
+
+enum EstadoSol {
+  SOLICITADO
+  COTIZANDO
+  ORDEN_COMPRA
+  RECIBIDO
+  DESPACHADO
+}
+
+model ItemSolicitud {
+  id             Int      @id @default(autoincrement())
+  solicitudId    Int
+  articuloDesc   String // Texto libre si no existe en inventario
+  itemId         Int? // Si está en el inventario actual (ERP/Defontana sync)
+  cantidad       Int
+  precioUnitario Decimal? // Llenado por Bodega/Finanzas
+
+  solicitud      SolicitudMaterial @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  itemInventario ItemInventario?   @relation(fields: [itemId], references: [id])
+}
+
+// ───────────────────────── TÉCNICA & TERRENO ─────────────────────────
+// Resuelve dolores de Supervisora (Programaciones) y Técnicos (Equipamiento en terreno)
+
+model ProgramacionObra {
+  id               Int      @id @default(autoincrement())
+  obraId           Int
+  programadorId    Int // Supervisora / Técnico
+  version          Int      @default(1)
+  archivoConfigUrl String? // Link S3 al archivo real
+  estado           String // EN_DESARROLLO, REVISION, APROBADO
+  notasFeedback    String? // Feedback asíncrono digital
+  createdAt        DateTime @default(now())
+
+  obra        Obra    @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  programador Usuario @relation("ProgramacionObraAutor", fields: [programadorId], references: [id])
+}
+
+// Documenta exactamente qué fierros quedaron instalados en el cruce.
+model EquipamientoTerreno {
+  id               Int      @id @default(autoincrement())
+  obraId           Int
+  categoria        String // "CONTROLADOR", "CCTV", "UPS"
+  modeloExacto     String // Ej: "Auter A5 - 16 Grupos"
+  numeroSerie      String?
+  notasInstalacion String?
+  createdAt        DateTime @default(now())
+
+  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+}
+
+// ───────────────────────── COMUNICACIÓN CENTRAL ─────────────────────────
+// Resuelve el problema de "traspasar el estado" entre Coordinadores.
+
+model ObraBitacora {
   id         Int      @id @default(autoincrement())
-  termino    String   @unique // Ej: "MQTT", "YOLOv3", "PLC"
-  definicion String   // Ej: "Protocolo de mensajería en tiempo real usado para conectar los cruces con la nube."
+  obraId     Int
+  autorId    Int
+  tipoEvento String // "CAMBIO_ESTADO", "COMENTARIO", "ALERTA"
+  mensaje    String
+  createdAt  DateTime @default(now())
+
+  obra  Obra    @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  autor Usuario @relation("ObraBitacoraAutor", fields: [autorId], references: [id])
 }

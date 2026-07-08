@@ -11,11 +11,14 @@ const DEV_PASSWORD = "cjtraffic123";
 
 // Matriz de acceso a los módulos del piloto (inferida de los atributos data-roles
 // del prototipo: view-iot y view-firmware, y de qué roles pueden escribir/aprobar).
+// El rol "coordinador" (coordinadores de proyecto de Obras) no accede a los
+// módulos del piloto (iot/firmware/admin) → OCULTO. Su trabajo vive en el módulo
+// Proyectos, que es accesible a todo usuario autenticado (no usa esta matriz).
 const PERMISOS_MODULO: Record<string, Record<string, "OCULTO" | "LECTURA" | "ESCRITURA">> = {
-  iot: { desarrollo: "ESCRITURA", gerencia: "LECTURA", jefatura: "LECTURA", firmware: "OCULTO", tecnico: "OCULTO" },
-  firmware: { desarrollo: "LECTURA", gerencia: "ESCRITURA", jefatura: "LECTURA", firmware: "ESCRITURA", tecnico: "LECTURA" },
+  iot: { desarrollo: "ESCRITURA", gerencia: "LECTURA", jefatura: "LECTURA", firmware: "OCULTO", tecnico: "OCULTO", coordinador: "OCULTO" },
+  firmware: { desarrollo: "LECTURA", gerencia: "ESCRITURA", jefatura: "LECTURA", firmware: "ESCRITURA", tecnico: "LECTURA", coordinador: "OCULTO" },
   // Panel de administración (creación de usuarios): solo Desarrollo, Gerencia y Jefatura.
-  admin: { desarrollo: "ESCRITURA", gerencia: "ESCRITURA", jefatura: "ESCRITURA", firmware: "OCULTO", tecnico: "OCULTO" },
+  admin: { desarrollo: "ESCRITURA", gerencia: "ESCRITURA", jefatura: "ESCRITURA", firmware: "OCULTO", tecnico: "OCULTO", coordinador: "OCULTO" },
 };
 
 async function main() {
@@ -44,7 +47,13 @@ async function main() {
   await upsertUsuario("Elías Guajardo", "e.guajardo@cjtraffic.cl", roles.desarrollo.id, "elias.guajardo@cjtraffic.local");
   await upsertUsuario("Febe Benecke", "n.benecke@cjtraffic.cl", roles.firmware.id, "febe.benecke@cjtraffic.local");
   await upsertUsuario("Víctor Aburto", "v.aburto@cjtraffic.cl", roles.jefatura.id);
-  await upsertUsuario("Javier Smith", "j.smith@cjtraffic.cl", roles.gerencia.id);
+  const javier = await upsertUsuario("Javier Smith", "j.smith@cjtraffic.cl", roles.gerencia.id);
+
+  // Coordinadores de proyecto del área de Obras.
+  const javieraOrozco = await upsertUsuario("Javiera Orozco", "j.orozco@cjtraffic.cl", roles.coordinador.id);
+  const nelsonOpazo = await upsertUsuario("Nelson Opazo", "n.opazo@cjtraffic.cl", roles.coordinador.id);
+  const juanAcuna = await upsertUsuario("Juan Acuña", "j.acuna@cjtraffic.cl", roles.coordinador.id);
+  const carlosSalas = await upsertUsuario("Carlos Salas", "c.salas@cjtraffic.cl", roles.coordinador.id);
 
   for (const [clave, nombre] of Object.entries({ iot: "Mantenedor IoT", firmware: "Firmware", admin: "Administración" })) {
     const modulo = await prisma.modulo.upsert({ where: { clave }, update: {}, create: { clave, nombre } });
@@ -61,7 +70,179 @@ async function main() {
     await prisma.categoriaInventario.upsert({ where: { nombre }, update: {}, create: { nombre } });
   }
 
-  console.log("Seed completo: roles, permisos, usuarios y categorías de inventario.");
+  // ── Proyectos de ejemplo (motor operativo de Obras) ──
+  // Idempotente: si la obra ya existe por su código, no se recrea (para no
+  // duplicar tracks ni bitácora). Los días "atrás" ubican los hitos en el tiempo
+  // para que el Panel Ejecutivo muestre datos realistas ("hitos de la semana").
+  const dia = 24 * 60 * 60 * 1000;
+  async function seedObra(o: {
+    codigoObra: string;
+    nombre: string;
+    cliente: string;
+    tipoObra: string;
+    faseGlobal: string;
+    presupuesto: number;
+    costoAcumulado: number;
+    coordinadorId: number | null;
+    tracks: { tipo: string; estadoActual: string; responsableId?: number | null }[];
+    bitacora: { autorId: number; tipoEvento: string; mensaje: string; diasAtras: number }[];
+  }) {
+    if (await prisma.obra.findUnique({ where: { codigoObra: o.codigoObra } })) return;
+    await prisma.obra.create({
+      data: {
+        codigoObra: o.codigoObra,
+        nombre: o.nombre,
+        cliente: o.cliente,
+        tipoObra: o.tipoObra,
+        faseGlobal: o.faseGlobal as never,
+        presupuesto: o.presupuesto,
+        costoAcumulado: o.costoAcumulado,
+        subgerenteId: javier.id,
+        coordinadorId: o.coordinadorId,
+        fechaInicio: new Date(Date.now() - 30 * dia),
+        tracks: {
+          create: o.tracks.map((t) => ({ tipo: t.tipo as never, estadoActual: t.estadoActual, responsableId: t.responsableId ?? null })),
+        },
+        bitacora: {
+          create: o.bitacora.map((b) => ({
+            autorId: b.autorId,
+            tipoEvento: b.tipoEvento,
+            mensaje: b.mensaje,
+            createdAt: new Date(Date.now() - b.diasAtras * dia),
+          })),
+        },
+      },
+    });
+  }
+
+  await seedObra({
+    codigoObra: "OBR-2026-045",
+    nombre: "Semáforo Av. Kennedy / Manquehue",
+    cliente: "Municipalidad de Las Condes",
+    tipoObra: "NUEVO_SEMAFORO",
+    faseGlobal: "GESTION",
+    presupuesto: 45_000_000,
+    costoAcumulado: 12_000_000,
+    coordinadorId: carlosSalas.id,
+    tracks: [
+      { tipo: "PERMISOS", estadoActual: "ESPERANDO_ORGANISMO", responsableId: carlosSalas.id },
+      { tipo: "ADQUISICIONES", estadoActual: "ORDEN_COMPRA" },
+      { tipo: "PROGRAMACION", estadoActual: "BLOQUEADO" },
+      { tipo: "INSTALACION", estadoActual: "PLANIFICACION" },
+    ],
+    bitacora: [
+      { autorId: javier.id, tipoEvento: "CREACION", mensaje: "Requerimiento recibido desde Ventas — alcance: 4 cruces.", diasAtras: 13 },
+      { autorId: carlosSalas.id, tipoEvento: "HITO", mensaje: "Expediente de permiso ingresado a la municipalidad — folio 2026-0451.", diasAtras: 10 },
+      { autorId: carlosSalas.id, tipoEvento: "HITO", mensaje: "Solicitud de materiales enviada a Bodega — lista de 12 ítems.", diasAtras: 6 },
+      { autorId: carlosSalas.id, tipoEvento: "ALERTA", mensaje: "Programación bloqueada: aún no se realiza el estudio vial del cruce principal.", diasAtras: 2 },
+    ],
+  });
+
+  await seedObra({
+    codigoObra: "OBR-2026-039",
+    nombre: "Modificación Cruce Vespucio / Grecia",
+    cliente: "MOP — Dirección de Vialidad",
+    tipoObra: "MODIFICACION",
+    faseGlobal: "EJECUCION",
+    presupuesto: 22_000_000,
+    costoAcumulado: 18_500_000,
+    coordinadorId: javieraOrozco.id,
+    tracks: [
+      { tipo: "PERMISOS", estadoActual: "APROBADO" },
+      { tipo: "ADQUISICIONES", estadoActual: "DESPACHADO" },
+      { tipo: "PROGRAMACION", estadoActual: "APROBADO", responsableId: javieraOrozco.id },
+      { tipo: "INSTALACION", estadoActual: "EN_TERRENO", responsableId: javieraOrozco.id },
+    ],
+    bitacora: [
+      { autorId: javieraOrozco.id, tipoEvento: "HITO", mensaje: "Programación aprobada tras prueba en banco.", diasAtras: 5 },
+      { autorId: javieraOrozco.id, tipoEvento: "HITO", mensaje: "Materiales despachados a terreno.", diasAtras: 4 },
+      { autorId: javieraOrozco.id, tipoEvento: "HITO", mensaje: "Cuadrilla en terreno: instalación en curso.", diasAtras: 1 },
+    ],
+  });
+
+  await seedObra({
+    codigoObra: "OBR-2026-051",
+    nombre: "CCTV Ruta 68 Sector Túnel",
+    cliente: "Concesionaria Ruta 68",
+    tipoObra: "CCTV",
+    faseGlobal: "INICIO",
+    presupuesto: 30_000_000,
+    costoAcumulado: 1_500_000,
+    coordinadorId: juanAcuna.id,
+    tracks: [
+      { tipo: "PERMISOS", estadoActual: "NO_INICIADO" },
+      { tipo: "ADQUISICIONES", estadoActual: "PLANIFICACION" },
+      { tipo: "PROGRAMACION", estadoActual: "ESPERANDO_REQUERIMIENTOS" },
+      { tipo: "COMUNICACIONES", estadoActual: "SOLICITADO", responsableId: juanAcuna.id },
+    ],
+    bitacora: [
+      { autorId: javier.id, tipoEvento: "CREACION", mensaje: "Proyecto creado desde requerimiento de Ventas.", diasAtras: 3 },
+      { autorId: juanAcuna.id, tipoEvento: "HITO", mensaje: "Solicitud de enlace enviada a Servicio Técnico.", diasAtras: 2 },
+    ],
+  });
+
+  await seedObra({
+    codigoObra: "OBR-2026-047",
+    nombre: "Semáforo Peatonal Colegio San José",
+    cliente: "Municipalidad de Maipú",
+    tipoObra: "NUEVO_SEMAFORO",
+    faseGlobal: "GESTION",
+    presupuesto: 15_000_000,
+    costoAcumulado: 6_200_000,
+    coordinadorId: nelsonOpazo.id,
+    tracks: [
+      { tipo: "PERMISOS", estadoActual: "APROBADO" },
+      { tipo: "ADQUISICIONES", estadoActual: "COTIZANDO" },
+      { tipo: "PROGRAMACION", estadoActual: "EN_BANCO" },
+      { tipo: "INSTALACION", estadoActual: "PLANIFICACION" },
+    ],
+    bitacora: [
+      { autorId: nelsonOpazo.id, tipoEvento: "HITO", mensaje: "Permiso municipal aprobado.", diasAtras: 8 },
+      { autorId: nelsonOpazo.id, tipoEvento: "HITO", mensaje: "Cotización de controlador solicitada a 2 proveedores.", diasAtras: 3 },
+    ],
+  });
+
+  // ── Subtareas de ejemplo por track (kanban) ──
+  // Checklist de subprocesos del wireframe. Idempotente: solo se crean si el
+  // track aún no tiene subtareas. El estado (kanban) se deriva del avance del
+  // track para que cada proyecto muestre un tablero coherente con su fase.
+  const CHECKLIST: Record<string, string[]> = {
+    PERMISOS: ["Preparar expediente", "Ingresar a organismo", "Respuesta / observaciones", "Permiso aprobado"],
+    ADQUISICIONES: ["Solicitud a Bodega", "Cotización", "Orden de compra", "Pago", "Recepción", "Despacho a terreno"],
+    PROGRAMACION: ["Estudio vial disponible", "Programar controlador", "Prueba en banco"],
+    INSTALACION: ["Preparar cuadrilla", "Instalación en terreno", "Puesta en marcha"],
+    COMUNICACIONES: ["Solicitud de enlace", "Configuración", "Enlace operativo"],
+  };
+  // Fracción de avance implícita según el estado textual del track.
+  function fraccionAvance(estado: string): number {
+    if (/APROBAD|DESPACHAD|OPERATIV|EN_TERRENO|RECIBID|FINALIZAD/.test(estado)) return 1;
+    if (/ORDEN_COMPRA|COTIZAND|EN_BANCO|CONFIGURAC/.test(estado)) return 0.5;
+    if (/ESPERANDO_ORGANISMO|SOLICITAD|EN_TRAMITE/.test(estado)) return 0.34;
+    return 0; // BLOQUEADO, NO_INICIADO, PLANIFICACION, ESPERANDO_REQUERIMIENTOS
+  }
+
+  const obrasEjemplo = await prisma.obra.findMany({
+    where: { codigoObra: { in: ["OBR-2026-045", "OBR-2026-039", "OBR-2026-051", "OBR-2026-047"] } },
+    include: { tracks: { include: { subtareas: { select: { id: true } } } } },
+  });
+  for (const obra of obrasEjemplo) {
+    for (const track of obra.tracks) {
+      if (track.subtareas.length > 0) continue;
+      const titulos = CHECKLIST[track.tipo] ?? [];
+      if (titulos.length === 0) continue;
+      const hechas = Math.floor(fraccionAvance(track.estadoActual) * titulos.length);
+      await prisma.obraSubtarea.createMany({
+        data: titulos.map((titulo, i) => ({
+          trackId: track.id,
+          titulo,
+          orden: i,
+          estado: i < hechas ? "HECHO" : i === hechas && hechas < titulos.length ? "EN_PROGRESO" : "POR_HACER",
+        })),
+      });
+    }
+  }
+
+  console.log("Seed completo: roles, permisos, usuarios, categorías de inventario y proyectos de ejemplo.");
   console.log(`Usuarios de prueba (password: ${DEV_PASSWORD}): e.guajardo@cjtraffic.cl, n.benecke@cjtraffic.cl, v.aburto@cjtraffic.cl, j.smith@cjtraffic.cl`);
 }
 

@@ -8,8 +8,12 @@ import FirmwareModule from "./pages/firmware";
 import AdminModule from "./pages/admin";
 import ProyectosModule from "./pages/proyectos";
 import ProyectoDetalle from "./pages/proyectos/ProyectoDetalle";
+import ProyectosEmpresaModule from "./pages/proyectos-empresa";
+import PanelSubgerente from "./pages/proyectos-empresa/PanelSubgerente";
+import ProyectoEmpresaDetalle, { TrackVista } from "./pages/proyectos-empresa/ProyectoEmpresaDetalle";
 import TecnologiasModule from "./pages/iot/Tecnologias";
 import GlosarioModule from "./pages/iot/Glosario";
+import TroubleshootingModule from "./pages/iot/Troubleshooting";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import ToastContainer from "./components/ToastContainer";
@@ -50,10 +54,13 @@ function ModuloPage() {
       {modulo === "iot" && submodulo === "proyectos" && <ProyectosModule />}
       {modulo === "iot" && submodulo === "tecnologias" && <TecnologiasModule />}
       {modulo === "iot" && submodulo === "glosario" && <GlosarioModule />}
-      {modulo === "iot" && !["proyectos", "tecnologias", "glosario"].includes(submodulo) && (
+      {modulo === "iot" && submodulo === "troubleshooting" && <TroubleshootingModule />}
+      {modulo === "iot" && !["proyectos", "tecnologias", "glosario", "troubleshooting"].includes(submodulo) && (
         <IotModule submodulo={submodulo as "resumen" | "directorio" | "inventario"} />
       )}
       {modulo === "firmware" && <FirmwareModule submodulo={submodulo as "resumen" | "historial"} />}
+      {modulo === "proyectos_empresa" && submodulo === "panel" && <PanelSubgerente />}
+      {modulo === "proyectos_empresa" && submodulo !== "panel" && <ProyectosEmpresaModule />}
       {modulo === "admin" && <AdminModule submodulo={submodulo as "usuarios"} />}
     </AppShell>
   );
@@ -71,6 +78,32 @@ function ProyectoDetallePage() {
   return (
     <AppShell usuario={usuario} onLogout={logout} sidebar={<Sidebar modulo="iot" />}>
       <ProyectoDetalle />
+    </AppShell>
+  );
+}
+
+function ProyectoEmpresaDetallePage() {
+  const { usuario, loading, logout } = useAuth();
+  if (loading) return <p className="text-sm text-neutral-500 p-8">Cargando…</p>;
+  if (!usuario) return <Navigate to="/login" replace />;
+
+  return (
+    <AppShell usuario={usuario} onLogout={logout} sidebar={<Sidebar modulo="proyectos_empresa" />}>
+      <ProyectoEmpresaDetalle />
+    </AppShell>
+  );
+}
+
+// Vista de una línea de trabajo (kanban de subtareas) — ruta propia dentro del
+// layout con header + sidebar, igual que el resto de las vistas.
+function ProyectoEmpresaTrackPage() {
+  const { usuario, loading, logout } = useAuth();
+  if (loading) return <p className="text-sm text-neutral-500 p-8">Cargando…</p>;
+  if (!usuario) return <Navigate to="/login" replace />;
+
+  return (
+    <AppShell usuario={usuario} onLogout={logout} sidebar={<Sidebar modulo="proyectos_empresa" />}>
+      <TrackVista />
     </AppShell>
   );
 }
@@ -117,6 +150,8 @@ export default function App() {
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/" element={<InicioRoute />} />
           <Route path="/iot/proyectos/:proyectoId" element={<ProyectoDetallePage />} />
+          <Route path="/proyectos_empresa/detalle/:proyectoId" element={<ProyectoEmpresaDetallePage />} />
+          <Route path="/proyectos_empresa/detalle/:proyectoId/track/:trackId" element={<ProyectoEmpresaTrackPage />} />
           <Route path="/:modulo" element={<RootRedirectAModulo />} />
           <Route path="/:modulo/:submodulo" element={<ModuloPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
