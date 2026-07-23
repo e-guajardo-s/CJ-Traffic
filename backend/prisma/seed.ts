@@ -15,10 +15,10 @@ const DEV_PASSWORD = "cjtraffic123";
 // módulos del piloto (iot/firmware/admin) → OCULTO. Su trabajo vive en el módulo
 // Proyectos, que es accesible a todo usuario autenticado (no usa esta matriz).
 const PERMISOS_MODULO: Record<string, Record<string, "OCULTO" | "LECTURA" | "ESCRITURA">> = {
-  iot: { desarrollo: "ESCRITURA", gerencia: "LECTURA", jefatura: "LECTURA", firmware: "OCULTO", tecnico: "OCULTO", coordinador: "OCULTO" },
-  firmware: { desarrollo: "LECTURA", gerencia: "ESCRITURA", jefatura: "LECTURA", firmware: "ESCRITURA", tecnico: "LECTURA", coordinador: "OCULTO" },
-  // Panel de administración (creación de usuarios): solo Desarrollo, Gerencia y Jefatura.
-  admin: { desarrollo: "ESCRITURA", gerencia: "ESCRITURA", jefatura: "ESCRITURA", firmware: "OCULTO", tecnico: "OCULTO", coordinador: "OCULTO" },
+  iot: { desarrollo: "ESCRITURA", gerencia: "LECTURA", jefe_mantencion: "LECTURA", jefe_construccion: "OCULTO", firmware: "OCULTO", tecnico: "OCULTO", coordinador: "OCULTO" },
+  firmware: { desarrollo: "LECTURA", gerencia: "ESCRITURA", jefe_mantencion: "LECTURA", jefe_construccion: "LECTURA", firmware: "ESCRITURA", tecnico: "LECTURA", coordinador: "OCULTO" },
+  // Panel de administración (creación de usuarios): solo Desarrollo, Gerencia y ambas jefaturas.
+  admin: { desarrollo: "ESCRITURA", gerencia: "ESCRITURA", jefe_mantencion: "ESCRITURA", jefe_construccion: "ESCRITURA", firmware: "OCULTO", tecnico: "OCULTO", coordinador: "OCULTO" },
 };
 
 async function main() {
@@ -33,27 +33,65 @@ async function main() {
     ),
   );
 
-  // Reemplaza correos antiguos (*.local) por los corporativos reales, sin duplicar filas.
-  async function upsertUsuario(nombre: string, email: string, rolId: number, emailAnterior?: string) {
+  // El rol "jefatura" único se dividió en jefe_construccion (Carlos Salas) y
+  // jefe_mantencion (Víctor Aburto). En una BD que venía del esquema anterior
+  // queda huérfano tras reasignar a Víctor; se elimina solo si ya no lo usa
+  // nadie, para que no aparezca en el selector de "Nuevo usuario".
+  const jefaturaObsoleta = await prisma.rol.findFirst({ where: { nombre: "jefatura" }, include: { usuariosRol: true } });
+  if (jefaturaObsoleta && jefaturaObsoleta.usuariosRol.length === 0) {
+    await prisma.rolModuloPermiso.deleteMany({ where: { rolId: jefaturaObsoleta.id } });
+    await prisma.rol.delete({ where: { id: jefaturaObsoleta.id } });
+  }
+
+  // Áreas organizativas (etiquetas sin efecto RBAC, usadas para dirigir avisos).
+  const areas = Object.fromEntries(
+    await Promise.all(
+      ["Obras", "Mantención"].map(async (nombre) => [nombre, await prisma.area.upsert({ where: { nombre }, update: {}, create: { nombre } })]),
+    ),
+  );
+
+  // Reemplaza correos antiguos (*.local) por los corporativos reales, sin
+  // duplicar filas. Multi-rol/multi-área: reemplaza el set completo en cada
+  // corrida (idempotente) en vez de acumular duplicados.
+  async function upsertUsuario(nombre: string, email: string, rolIds: number[], areaIds: number[] = [], emailAnterior?: string) {
     const existente =
       (await prisma.usuario.findUnique({ where: { email } })) ??
       (emailAnterior ? await prisma.usuario.findUnique({ where: { email: emailAnterior } }) : null);
     if (existente) {
-      return prisma.usuario.update({ where: { id: existente.id }, data: { nombre, email, passwordHash, rolId } });
+      return prisma.usuario.update({
+        where: { id: existente.id },
+        data: {
+          nombre,
+          email,
+          passwordHash,
+          roles: { deleteMany: {}, create: rolIds.map((rolId) => ({ rolId })) },
+          areas: { deleteMany: {}, create: areaIds.map((areaId) => ({ areaId })) },
+        },
+      });
     }
-    return prisma.usuario.create({ data: { nombre, email, passwordHash, rolId } });
+    return prisma.usuario.create({
+      data: {
+        nombre,
+        email,
+        passwordHash,
+        roles: { create: rolIds.map((rolId) => ({ rolId })) },
+        areas: { create: areaIds.map((areaId) => ({ areaId })) },
+      },
+    });
   }
 
-  await upsertUsuario("Elías Guajardo", "e.guajardo@cjtraffic.cl", roles.desarrollo.id, "elias.guajardo@cjtraffic.local");
-  await upsertUsuario("Febe Benecke", "n.benecke@cjtraffic.cl", roles.firmware.id, "febe.benecke@cjtraffic.local");
-  await upsertUsuario("Víctor Aburto", "v.aburto@cjtraffic.cl", roles.jefatura.id);
-  const javier = await upsertUsuario("Javier Smith", "j.smith@cjtraffic.cl", roles.gerencia.id);
+  // Elías: desarrollo, pero también apoya en Mantención. Febe: firmware, con
+  // el mismo apoyo. Ejemplos de multi-rol/área pedidos explícitamente.
+  await upsertUsuario("Elías Guajardo", "e.guajardo@cjtraffic.cl", [roles.desarrollo.id], [areas["Mantención"].id], "elias.guajardo@cjtraffic.local");
+  await upsertUsuario("Febe Benecke", "n.benecke@cjtraffic.cl", [roles.firmware.id], [areas["Mantención"].id], "febe.benecke@cjtraffic.local");
+  await upsertUsuario("Víctor Aburto", "v.aburto@cjtraffic.cl", [roles.jefe_mantencion.id], [areas["Mantención"].id]);
+  const javier = await upsertUsuario("Javier Smith", "j.smith@cjtraffic.cl", [roles.gerencia.id]);
 
-  // Coordinadores de proyecto del área de Obras.
-  const javieraOrozco = await upsertUsuario("Javiera Orozco", "j.orozco@cjtraffic.cl", roles.coordinador.id);
-  const nelsonOpazo = await upsertUsuario("Nelson Opazo", "n.opazo@cjtraffic.cl", roles.coordinador.id);
-  const juanAcuna = await upsertUsuario("Juan Acuña", "j.acuna@cjtraffic.cl", roles.coordinador.id);
-  const carlosSalas = await upsertUsuario("Carlos Salas", "c.salas@cjtraffic.cl", roles.coordinador.id);
+  // Jefe de Construcción y coordinadores de proyecto del área de Obras.
+  const carlosSalas = await upsertUsuario("Carlos Salas", "c.salas@cjtraffic.cl", [roles.jefe_construccion.id], [areas["Obras"].id]);
+  const javieraOrozco = await upsertUsuario("Javiera Orozco", "j.orozco@cjtraffic.cl", [roles.coordinador.id], [areas["Obras"].id]);
+  const nelsonOpazo = await upsertUsuario("Nelson Opazo", "n.opazo@cjtraffic.cl", [roles.coordinador.id], [areas["Obras"].id]);
+  const juanAcuna = await upsertUsuario("Juan Acuña", "j.acuna@cjtraffic.cl", [roles.coordinador.id], [areas["Obras"].id]);
 
   for (const [clave, nombre] of Object.entries({ iot: "Mantenedor IoT", firmware: "Firmware", admin: "Administración" })) {
     const modulo = await prisma.modulo.upsert({ where: { clave }, update: {}, create: { clave, nombre } });
@@ -240,6 +278,21 @@ async function main() {
         })),
       });
     }
+  }
+
+  // ── Aviso de ejemplo (panel de administración → Avisos) ──
+  const tituloAvisoEjemplo = "Bienvenida al nuevo panel de administración";
+  if (!(await prisma.aviso.findFirst({ where: { titulo: tituloAvisoEjemplo } }))) {
+    await prisma.aviso.create({
+      data: {
+        titulo: tituloAvisoEjemplo,
+        cuerpo: "Ahora se pueden asignar múltiples roles y áreas por usuario, y publicar avisos dirigidos a todos, un área o un rol específico.",
+        tipo: "INFO",
+        presentacion: "BANNER",
+        audienciaTipo: "TODOS",
+        autorId: javier.id,
+      },
+    });
   }
 
   console.log("Seed completo: roles, permisos, usuarios, categorías de inventario y proyectos de ejemplo.");

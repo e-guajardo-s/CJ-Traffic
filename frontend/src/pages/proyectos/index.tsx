@@ -154,6 +154,11 @@ function ProyectoCard({ proyecto }: { proyecto: Proyecto }) {
   const hechas = tareas.filter((t) => t.estado === "HECHO").length;
   const progreso = total === 0 ? 0 : Math.round((hechas / total) * 100);
 
+  const ultimoAvance = tareas.reduce<string | null>((max, t) => {
+    if (!max || new Date(t.updatedAt) > new Date(max)) return t.updatedAt;
+    return max;
+  }, null);
+
   return (
     <Link
       to={`/iot/proyectos/${proyecto.id}`}
@@ -163,9 +168,16 @@ function ProyectoCard({ proyecto }: { proyecto: Proyecto }) {
         <h3 className="text-base font-bold text-neutral-800 group-hover:text-orange-600 transition-colors line-clamp-1">
           {proyecto.nombre}
         </h3>
-        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shrink-0 uppercase tracking-wider ${ESTADO_PROYECTO_COLOR[proyecto.estado]}`}>
-          {ESTADO_PROYECTO_LABEL[proyecto.estado]}
-        </span>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border uppercase tracking-wider ${ESTADO_PROYECTO_COLOR[proyecto.estado]}`}>
+            {ESTADO_PROYECTO_LABEL[proyecto.estado]}
+          </span>
+          {ultimoAvance && (
+            <span className="text-[10px] text-neutral-400 font-medium whitespace-nowrap">
+              Último avance: {new Date(ultimoAvance).toLocaleDateString("es-CL", { day: "2-digit", month: "short" })}
+            </span>
+          )}
+        </div>
       </div>
 
       {proyecto.descripcion && (

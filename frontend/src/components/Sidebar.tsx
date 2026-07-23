@@ -90,6 +90,26 @@ const ICONO_SUBVISTA: Record<SubVista, ReactNode> = {
       <line x1="6" y1="20" x2="6" y2="14" />
     </>,
   ),
+  alertas: icono(
+    <>
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </>,
+  ),
+  areas: icono(
+    <>
+      <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+      <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
+    </>,
+  ),
+  avisos: icono(
+    <>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </>,
+  ),
 };
 
 export default function Sidebar({ modulo }: { modulo: Modulo }) {

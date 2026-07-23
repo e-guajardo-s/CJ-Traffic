@@ -15,6 +15,7 @@ import Modal from "../../components/Modal";
 import { showToast } from "../../components/toast";
 import {
   COLUMNAS_KANBAN,
+  COLUMNA_KANBAN_ESTILO,
   ESTADO_PROYECTO_COLOR,
   ESTADO_PROYECTO_LABEL,
   ESTADO_TAREA_LABEL,
@@ -373,9 +374,10 @@ function KanbanBoard({ proyecto, puedeEscribir, onChange }: { proyecto: Proyecto
   if (!tareas) return <p className="text-sm text-neutral-500">Cargando…</p>;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
       {COLUMNAS_KANBAN.map((col) => {
         const tareasCol = tareas.filter((t) => t.estado === col);
+        const estilo = COLUMNA_KANBAN_ESTILO[col];
         return (
           <div
             key={col}
@@ -392,11 +394,11 @@ function KanbanBoard({ proyecto, puedeEscribir, onChange }: { proyecto: Proyecto
               const id = Number(e.dataTransfer.getData("text/plain"));
               if (id) moverA(id, col);
             }}
-            className={`bg-neutral-50/70 border rounded-2xl p-3 min-h-[300px] flex flex-col transition-colors ${colDestacada === col ? "border-orange-400 bg-orange-50/50" : "border-neutral-200"}`}
+            className={`border rounded-2xl p-3 min-h-[300px] flex flex-col transition-colors ${colDestacada === col ? "border-orange-400 bg-orange-50/50" : `${estilo.fondo} ${estilo.borde}`}`}
           >
             <div className="flex items-center justify-between mb-3 px-2">
-              <p className="text-[11px] font-black uppercase tracking-widest text-neutral-500">{ESTADO_TAREA_LABEL[col]}</p>
-              <span className="text-xs font-semibold bg-neutral-200 text-neutral-600 px-2 py-0.5 rounded-full">{tareasCol.length}</span>
+              <p className={`text-[11px] font-black uppercase tracking-widest ${estilo.header}`}>{ESTADO_TAREA_LABEL[col]}</p>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${estilo.badge}`}>{tareasCol.length}</span>
             </div>
 
             <div className="space-y-3 flex-1">
@@ -413,7 +415,13 @@ function KanbanBoard({ proyecto, puedeEscribir, onChange }: { proyecto: Proyecto
                   className={`bg-white border border-neutral-200 rounded-xl p-4 shadow-sm group transition-all ${puedeEscribir ? "cursor-grab active:cursor-grabbing hover:border-orange-300 hover:shadow-md hover:-translate-y-0.5" : ""} ${arrastrando === t.id ? "opacity-30 border-dashed" : ""}`}
                 >
                   <p className="text-sm font-bold text-neutral-800 group-hover:text-orange-600 transition-colors leading-tight">{t.titulo}</p>
-                  {t.descripcion && <p className="text-xs text-neutral-500 mt-1.5 line-clamp-2">{t.descripcion}</p>}
+                  {t.descripcion && <p className="text-xs text-neutral-500 mt-1.5 whitespace-pre-wrap">{t.descripcion}</p>}
+                  {t.fechaCambioEstado && (
+                    <p className="flex items-center gap-1 mt-2 text-[10px] text-neutral-400 font-medium">
+                      <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
+                      En esta fase desde {formatFecha(t.fechaCambioEstado)}
+                    </p>
+                  )}
 
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-neutral-50 text-[10px] text-neutral-400 font-medium">
                     <span className="flex items-center gap-1 bg-neutral-50 px-1.5 py-0.5 rounded border border-neutral-100">
@@ -476,6 +484,7 @@ function TareaModal({
   const [estado, setEstado] = useState<EstadoTarea>(modo.modo === "editar" ? modo.tarea.estado : modo.estado);
   const [asignadoId, setAsignadoId] = useState<number | "">(tareaExistente?.asignadoId ?? "");
   const [fechaLimite, setFechaLimite] = useState(tareaExistente?.fechaLimite?.slice(0, 10) ?? "");
+  const [fechaCambioEstado, setFechaCambioEstado] = useState(tareaExistente?.fechaCambioEstado?.slice(0, 10) ?? "");
   const [usuarios, setUsuarios] = useState<UsuarioLite[]>([]);
   const [saving, setSaving] = useState(false);
   const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
@@ -492,13 +501,17 @@ function TareaModal({
     }
     setSaving(true);
     try {
-      const body = JSON.stringify({
+      const bodyObj: Record<string, unknown> = {
         titulo: titulo.trim(),
         descripcion: descripcion.trim() || null,
         estado,
         asignadoId: asignadoId || null,
         fechaLimite: fechaLimite || null,
-      });
+      };
+      if (tareaExistente) {
+        bodyObj.fechaCambioEstado = fechaCambioEstado || null;
+      }
+      const body = JSON.stringify(bodyObj);
       if (tareaExistente) {
         await apiFetch(`/proyectos/tareas/${tareaExistente.id}`, { method: "PATCH", body });
       } else {
@@ -563,9 +576,17 @@ function TareaModal({
             </select>
           </div>
         </div>
-        <div>
-          <label className="text-xs text-neutral-500 block mb-1.5">Fecha límite</label>
-          <input type="date" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} className={inputClass} />
+        <div className={tareaExistente ? "grid grid-cols-2 gap-3" : ""}>
+          <div>
+            <label className="text-xs text-neutral-500 block mb-1.5">Fecha límite</label>
+            <input type="date" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} className={inputClass} />
+          </div>
+          {tareaExistente && (
+            <div>
+              <label className="text-xs text-neutral-500 block mb-1.5">Fecha en que entró a esta fase</label>
+              <input type="date" value={fechaCambioEstado} onChange={(e) => setFechaCambioEstado(e.target.value)} className={inputClass} />
+            </div>
+          )}
         </div>
 
         {error && <p className="text-xs font-medium text-red-600">{error}</p>}

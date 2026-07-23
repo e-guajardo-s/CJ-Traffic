@@ -1,5 +1,5 @@
 export type EstadoProyecto = "NO_INICIADO" | "EN_PROGRESO" | "PAUSADO" | "COMPLETADO" | "CANCELADO";
-export type EstadoTarea = "POR_HACER" | "EN_PROGRESO" | "EN_REVISION" | "HECHO";
+export type EstadoTarea = "POR_HACER" | "EN_PROGRESO" | "EN_REVISION" | "HECHO" | "BLOQUEADO";
 
 export interface UsuarioLite {
   id: number;
@@ -12,6 +12,7 @@ export interface ProyectoTarea {
   titulo: string;
   descripcion: string | null;
   estado: EstadoTarea;
+  fechaCambioEstado: string | null;
   orden: number;
   asignado: UsuarioLite | null;
   asignadoId: number | null;
@@ -68,7 +69,7 @@ export interface Proyecto {
   createdAt: string;
   updatedAt: string;
   // Presentes solo en el listado (resumen liviano):
-  tareas?: { estado: EstadoTarea }[];
+  tareas?: { estado: EstadoTarea; updatedAt: string }[];
   _count?: { paginas: number };
   // Presentes solo en el detalle:
   paginas?: ProyectoPagina[];
@@ -97,6 +98,15 @@ export const ESTADO_TAREA_LABEL: Record<EstadoTarea, string> = {
   EN_PROGRESO: "En progreso",
   EN_REVISION: "En revisión",
   HECHO: "Hecho",
+  BLOQUEADO: "Bloqueado",
 };
 
-export const COLUMNAS_KANBAN: EstadoTarea[] = ["POR_HACER", "EN_PROGRESO", "EN_REVISION", "HECHO"];
+export const COLUMNAS_KANBAN: EstadoTarea[] = ["POR_HACER", "EN_PROGRESO", "EN_REVISION", "HECHO", "BLOQUEADO"];
+
+export const COLUMNA_KANBAN_ESTILO: Record<EstadoTarea, { fondo: string; borde: string; header: string; badge: string }> = {
+  POR_HACER: { fondo: "bg-neutral-50/70", borde: "border-neutral-200", header: "text-neutral-500", badge: "bg-neutral-200 text-neutral-600" },
+  EN_PROGRESO: { fondo: "bg-sky-50/60", borde: "border-sky-200", header: "text-sky-600", badge: "bg-sky-100 text-sky-700" },
+  EN_REVISION: { fondo: "bg-amber-50/60", borde: "border-amber-200", header: "text-amber-600", badge: "bg-amber-100 text-amber-700" },
+  HECHO: { fondo: "bg-emerald-50/60", borde: "border-emerald-200", header: "text-emerald-600", badge: "bg-emerald-100 text-emerald-700" },
+  BLOQUEADO: { fondo: "bg-red-50/60", borde: "border-red-200", header: "text-red-500", badge: "bg-red-100 text-red-600" },
+};

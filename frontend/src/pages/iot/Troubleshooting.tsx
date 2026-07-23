@@ -10,7 +10,9 @@ interface Incidencia {
   titulo: string;
   tipo: "HARDWARE" | "SOFTWARE";
   descripcion: string;
+  fechaDescripcion: string | null;
   accionTomada: string | null;
+  fechaAccion: string | null;
   estado: "ABIERTO" | "EN_PROCESO" | "SOLUCIONADO";
   fecha: string;
   proyectoId: number | null;
@@ -302,14 +304,28 @@ export default function TroubleshootingModule() {
 
                   <div className="space-y-3 mt-1">
                     <div>
-                      <p className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider mb-0.5">Descripción de la falla</p>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider">Descripción de la falla</p>
+                        {inc.fechaDescripcion && (
+                          <span className="text-[10px] font-semibold text-neutral-400">
+                            {new Date(inc.fechaDescripcion).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-neutral-600 whitespace-pre-wrap leading-relaxed bg-neutral-50 rounded-xl p-3 border border-neutral-100">
                         {inc.descripcion}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider mb-0.5">Acción Tomada / Solución</p>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider">Acción Tomada / Solución</p>
+                        {inc.accionTomada && inc.fechaAccion && (
+                          <span className="text-[10px] font-semibold text-emerald-600">
+                            {new Date(inc.fechaAccion).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })}
+                          </span>
+                        )}
+                      </div>
                       {inc.accionTomada ? (
                         <p className="text-sm text-neutral-600 whitespace-pre-wrap leading-relaxed bg-emerald-50/30 rounded-xl p-3 border border-emerald-100/50">
                           {inc.accionTomada}
@@ -365,7 +381,9 @@ export function IncidenciaFormModal({
   const [titulo, setTitulo] = useState(incidencia?.titulo ?? "");
   const [tipo, setTipo] = useState<"HARDWARE" | "SOFTWARE">(incidencia?.tipo ?? "HARDWARE");
   const [descripcion, setDescripcion] = useState(incidencia?.descripcion ?? "");
+  const [fechaDescripcion, setFechaDescripcion] = useState(incidencia?.fechaDescripcion?.slice(0, 10) ?? "");
   const [accionTomada, setAccionTomada] = useState(incidencia?.accionTomada ?? "");
+  const [fechaAccion, setFechaAccion] = useState(incidencia?.fechaAccion?.slice(0, 10) ?? "");
   const [estado, setEstado] = useState<"ABIERTO" | "EN_PROCESO" | "SOLUCIONADO">(incidencia?.estado ?? "ABIERTO");
   const [proyectoId, setProyectoId] = useState<string>(
     proyectoIdFijo ? String(proyectoIdFijo) : (incidencia?.proyectoId ? String(incidencia.proyectoId) : "")
@@ -384,7 +402,9 @@ export function IncidenciaFormModal({
       titulo: titulo.trim(),
       tipo,
       descripcion: descripcion.trim(),
+      fechaDescripcion: fechaDescripcion || null,
       accionTomada: accionTomada.trim() || null,
+      fechaAccion: fechaAccion || null,
       estado,
       proyectoId: proyectoId ? Number(proyectoId) : null,
     };
@@ -470,7 +490,15 @@ export function IncidenciaFormModal({
         )}
 
         <div>
-          <label className="text-xs font-bold text-neutral-600 block mb-1">Descripción detallada de la falla *</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-neutral-600">Descripción detallada de la falla *</label>
+            <input
+              type="date"
+              value={fechaDescripcion}
+              onChange={(e) => setFechaDescripcion(e.target.value)}
+              className="text-xs bg-white border border-neutral-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+            />
+          </div>
           <textarea
             required
             rows={3}
@@ -482,7 +510,15 @@ export function IncidenciaFormModal({
         </div>
 
         <div>
-          <label className="text-xs font-bold text-neutral-600 block mb-1">Acción Tomada / Solución Aplicada</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-neutral-600">Acción Tomada / Solución Aplicada</label>
+            <input
+              type="date"
+              value={fechaAccion}
+              onChange={(e) => setFechaAccion(e.target.value)}
+              className="text-xs bg-white border border-neutral-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+            />
+          </div>
           <textarea
             rows={3}
             value={accionTomada}

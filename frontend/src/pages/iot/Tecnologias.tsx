@@ -22,6 +22,7 @@ export default function TecnologiasModule() {
   const [busqueda, setBusqueda] = useState("");
   
   const [creandoTech, setCreandoTech] = useState(false);
+  const [editandoTech, setEditandoTech] = useState<Tecnologia | null>(null);
   const [subiendoArchivoTechId, setSubiendoArchivoTechId] = useState<number | null>(null);
 
   function cargar() {
@@ -133,13 +134,22 @@ export default function TecnologiasModule() {
           {filtrados.map((tech) => (
             <div key={tech.id} className="group relative bg-white border border-neutral-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between hover:border-neutral-300 hover:shadow-md transition-all duration-300">
               {puedeEscribir && (
-                <button
-                  onClick={() => eliminarTecnologia(tech.id, tech.nombre)}
-                  className="absolute top-6 right-6 p-1 rounded-md text-neutral-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Eliminar tecnología"
-                >
-                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                </button>
+                <div className="absolute top-6 right-6 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => setEditandoTech(tech)}
+                    className="p-1 rounded-md text-neutral-400 hover:text-orange-600 hover:bg-orange-50"
+                    title="Editar tecnología"
+                  >
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </button>
+                  <button
+                    onClick={() => eliminarTecnologia(tech.id, tech.nombre)}
+                    className="p-1 rounded-md text-neutral-400 hover:text-red-600 hover:bg-red-50"
+                    title="Eliminar tecnología"
+                  >
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                  </button>
+                </div>
               )}
 
               <div>
@@ -152,7 +162,7 @@ export default function TecnologiasModule() {
                   }`}>
                     {tech.categoria}
                   </span>
-                  <span className="text-xs text-neutral-400 font-semibold pr-6">
+                  <span className="text-xs text-neutral-400 font-semibold pr-12">
                     {tech.archivos.length} documento{tech.archivos.length === 1 ? "" : "s"}
                   </span>
                 </div>
@@ -226,9 +236,17 @@ export default function TecnologiasModule() {
       )}
 
       {creandoTech && (
-        <CrearTecnologiaModal 
-          onClose={() => setCreandoTech(false)} 
-          onCreated={() => { setCreandoTech(false); cargar(); }} 
+        <CrearTecnologiaModal
+          onClose={() => setCreandoTech(false)}
+          onCreated={() => { setCreandoTech(false); cargar(); }}
+        />
+      )}
+
+      {editandoTech && (
+        <EditarTecnologiaModal
+          tecnologia={editandoTech}
+          onClose={() => setEditandoTech(null)}
+          onSaved={() => { setEditandoTech(null); cargar(); }}
         />
       )}
 
@@ -327,6 +345,96 @@ function CrearTecnologiaModal({ onClose, onCreated }: { onClose: () => void; onC
             className="text-xs font-semibold bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-2 rounded-lg"
           >
             {saving ? "Registrando…" : "Registrar Equipo"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function EditarTecnologiaModal({ tecnologia, onClose, onSaved }: { tecnologia: Tecnologia; onClose: () => void; onSaved: () => void }) {
+  const [nombre, setNombre] = useState(tecnologia.nombre);
+  const [descripcion, setDescripcion] = useState(tecnologia.descripcion ?? "");
+  const [categoria, setCategoria] = useState<"HARDWARE" | "SOFTWARE" | "COMUNICACIONES">(tecnologia.categoria as "HARDWARE" | "SOFTWARE" | "COMUNICACIONES");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function guardar() {
+    if (!nombre.trim()) {
+      setError("El nombre es obligatorio.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await apiFetch(`/proyectos/tecnologias/${tecnologia.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          descripcion: descripcion.trim() || null,
+          categoria,
+        }),
+      });
+      showToast("Tecnología actualizada con éxito.", "success");
+      onSaved();
+    } catch (e: any) {
+      setError(e.message || "Error al actualizar la tecnología.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title="Editar Tecnología / Equipo" onClose={onClose}>
+      <div className="space-y-4">
+        <div>
+          <label className="text-xs text-neutral-500 block mb-1.5 font-bold uppercase tracking-wider">Nombre del Equipo</label>
+          <input
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            className={inputClass}
+            placeholder="Ej: Radar de Velocidad Smart Traffic"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-neutral-500 block mb-1.5 font-bold uppercase tracking-wider">Categoría</label>
+          <select
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value as any)}
+            className={inputClass}
+          >
+            <option value="HARDWARE">Hardware (Equipos, Dispositivos)</option>
+            <option value="SOFTWARE">Software (Algoritmos, Bloques PLC)</option>
+            <option value="COMUNICACIONES">Comunicaciones (MQTT, Radioenlace)</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-neutral-500 block mb-1.5 font-bold uppercase tracking-wider">Descripción</label>
+          <textarea
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            rows={3}
+            className={inputClass}
+            placeholder="Ej: Unidad de medición de velocidad doppler por microondas."
+          />
+        </div>
+
+        {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-neutral-100">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-700 px-3 py-2 rounded-lg"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={guardar}
+            disabled={saving}
+            className="text-xs font-semibold bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-2 rounded-lg"
+          >
+            {saving ? "Guardando…" : "Guardar Cambios"}
           </button>
         </div>
       </div>

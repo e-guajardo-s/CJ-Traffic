@@ -320,7 +320,7 @@ iotRouter.get("/troubleshooting", requireAuth, requireModulo("iot", "LECTURA"), 
 });
 
 iotRouter.post("/troubleshooting", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
-  const { titulo, tipo, descripcion, accionTomada, estado, proyectoId } = req.body ?? {};
+  const { titulo, tipo, descripcion, fechaDescripcion, accionTomada, fechaAccion, estado, proyectoId } = req.body ?? {};
   if (!titulo || !tipo || !descripcion || !estado) {
     return res.status(400).json({ error: "titulo, tipo, descripcion y estado son requeridos" });
   }
@@ -329,7 +329,9 @@ iotRouter.post("/troubleshooting", requireAuth, requireModulo("iot", "ESCRITURA"
       titulo,
       tipo,
       descripcion,
+      fechaDescripcion: fechaDescripcion ? new Date(fechaDescripcion) : null,
       accionTomada: accionTomada || null,
+      fechaAccion: fechaAccion ? new Date(fechaAccion) : null,
       estado,
       proyectoId: proyectoId ? Number(proyectoId) : null,
       autorId: req.user!.sub,
@@ -353,8 +355,8 @@ iotRouter.post("/troubleshooting", requireAuth, requireModulo("iot", "ESCRITURA"
 
 iotRouter.patch("/troubleshooting/:id", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
   const id = Number(req.params.id);
-  const { titulo, tipo, descripcion, accionTomada, estado, proyectoId } = req.body ?? {};
-  
+  const { titulo, tipo, descripcion, fechaDescripcion, accionTomada, fechaAccion, estado, proyectoId } = req.body ?? {};
+
   const existente = await prisma.incidenciaTroubleshooting.findUnique({ where: { id } });
   if (!existente) return res.status(404).json({ error: "Incidencia no encontrada" });
 
@@ -364,7 +366,9 @@ iotRouter.patch("/troubleshooting/:id", requireAuth, requireModulo("iot", "ESCRI
       titulo: titulo !== undefined ? titulo : existente.titulo,
       tipo: tipo !== undefined ? tipo : existente.tipo,
       descripcion: descripcion !== undefined ? descripcion : existente.descripcion,
+      fechaDescripcion: fechaDescripcion !== undefined ? (fechaDescripcion ? new Date(fechaDescripcion) : null) : existente.fechaDescripcion,
       accionTomada: accionTomada !== undefined ? (accionTomada || null) : existente.accionTomada,
+      fechaAccion: fechaAccion !== undefined ? (fechaAccion ? new Date(fechaAccion) : null) : existente.fechaAccion,
       estado: estado !== undefined ? estado : existente.estado,
       proyectoId: proyectoId !== undefined ? (proyectoId ? Number(proyectoId) : null) : existente.proyectoId,
     },

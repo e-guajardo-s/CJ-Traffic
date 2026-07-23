@@ -7,8 +7,8 @@ export function esModulo(v: string | undefined): v is Modulo {
 
 export type SubVistaIot = "resumen" | "directorio" | "inventario" | "proyectos" | "tecnologias" | "glosario" | "troubleshooting";
 export type SubVistaFirmware = "resumen" | "historial";
-export type SubVistaAdmin = "usuarios";
-export type SubVistaProyectosEmpresa = "panel" | "tablero";
+export type SubVistaAdmin = "usuarios" | "areas" | "avisos";
+export type SubVistaProyectosEmpresa = "panel" | "tablero" | "alertas";
 export type SubVista = SubVistaIot | SubVistaFirmware | SubVistaAdmin | SubVistaProyectosEmpresa;
 
 export interface SubModuloDef {
@@ -33,8 +33,13 @@ export const SUBMODULOS: Record<Modulo, SubModuloDef[]> = {
   proyectos_empresa: [
     { id: "panel", label: "Panel Ejecutivo" },
     { id: "tablero", label: "Listado" },
+    { id: "alertas", label: "Gestión de Alertas" },
   ],
-  admin: [{ id: "usuarios", label: "Usuarios" }],
+  admin: [
+    { id: "usuarios", label: "Usuarios" },
+    { id: "areas", label: "Áreas" },
+    { id: "avisos", label: "Avisos" },
+  ],
 };
 
 export const MODULO_LABEL: Record<Modulo, string> = {

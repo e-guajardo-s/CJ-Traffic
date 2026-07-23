@@ -10,6 +10,7 @@ import ProyectosModule from "./pages/proyectos";
 import ProyectoDetalle from "./pages/proyectos/ProyectoDetalle";
 import ProyectosEmpresaModule from "./pages/proyectos-empresa";
 import PanelSubgerente from "./pages/proyectos-empresa/PanelSubgerente";
+import AlertasModule from "./pages/proyectos-empresa/AlertasModule";
 import ProyectoEmpresaDetalle, { TrackVista } from "./pages/proyectos-empresa/ProyectoEmpresaDetalle";
 import TecnologiasModule from "./pages/iot/Tecnologias";
 import GlosarioModule from "./pages/iot/Glosario";
@@ -60,8 +61,9 @@ function ModuloPage() {
       )}
       {modulo === "firmware" && <FirmwareModule submodulo={submodulo as "resumen" | "historial"} />}
       {modulo === "proyectos_empresa" && submodulo === "panel" && <PanelSubgerente />}
-      {modulo === "proyectos_empresa" && submodulo !== "panel" && <ProyectosEmpresaModule />}
-      {modulo === "admin" && <AdminModule submodulo={submodulo as "usuarios"} />}
+      {modulo === "proyectos_empresa" && submodulo === "alertas" && <AlertasModule />}
+      {modulo === "proyectos_empresa" && submodulo === "tablero" && <ProyectosEmpresaModule />}
+      {modulo === "admin" && <AdminModule submodulo={submodulo as "usuarios" | "areas" | "avisos"} />}
     </AppShell>
   );
 }
@@ -114,7 +116,7 @@ function AppShell({
   sidebar,
   children,
 }: {
-  usuario: { nombre: string; rol: string };
+  usuario: { nombre: string; roles: string[] };
   onLogout: () => void;
   sidebar?: ReactNode;
   children: ReactNode;

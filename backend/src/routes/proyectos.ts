@@ -27,7 +27,7 @@ proyectosRouter.get("/", requireAuth, requireModulo("iot", "LECTURA"), async (_r
   const proyectos = await prisma.proyecto.findMany({
     include: {
       responsable: usuarioLite,
-      tareas: { select: { estado: true } },
+      tareas: { select: { estado: true, updatedAt: true } },
       _count: { select: { paginas: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -193,6 +193,41 @@ proyectosRouter.post("/tecnologias", requireAuth, requireModulo("iot", "ESCRITUR
     res.status(201).json(tecnologia);
   } catch (e: any) {
     res.status(500).json({ error: e.message || "Error al crear tecnología" });
+  }
+});
+
+// Editar nombre, categoría y/o descripción de una tecnología
+proyectosRouter.patch("/tecnologias/:id", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
+  const id = Number(req.params.id);
+  const { nombre, descripcion, categoria } = req.body ?? {};
+
+  if (nombre !== undefined && !nombre.trim()) {
+    return res.status(400).json({ error: "El nombre no puede quedar vacío" });
+  }
+
+  try {
+    const tecnologia = await prisma.tecnologia.update({
+      where: { id },
+      data: {
+        ...(nombre !== undefined ? { nombre } : {}),
+        ...(descripcion !== undefined ? { descripcion: descripcion || null } : {}),
+        ...(categoria !== undefined ? { categoria } : {}),
+      },
+      include: { archivos: true },
+    });
+
+    await registrarBitacora({
+      autorId: req.user!.sub,
+      accion: "proyecto.tecnologia.editar",
+      entidad: "Tecnologia",
+      entidadId: tecnologia.id,
+      detalle: { nombre: tecnologia.nombre },
+    });
+
+    res.json(tecnologia);
+  } catch (e: any) {
+    if (e.code === "P2025") return res.status(404).json({ error: "Tecnología no encontrada" });
+    res.status(500).json({ error: e.message || "Error al editar tecnología" });
   }
 });
 
@@ -539,7 +574,7 @@ proyectosRouter.delete("/paginas/:id", requireAuth, requireModulo("iot", "ESCRIT
 
 // ───────────────────────── Tareas (Kanban) ─────────────────────────
 
-const ESTADOS_TAREA = ["POR_HACER", "EN_PROGRESO", "EN_REVISION", "HECHO"] as const;
+const ESTADOS_TAREA = ["POR_HACER", "EN_PROGRESO", "EN_REVISION", "HECHO", "BLOQUEADO"] as const;
 
 proyectosRouter.post("/:id/tareas", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
   const proyectoId = Number(req.params.id);
@@ -581,7 +616,7 @@ proyectosRouter.post("/:id/tareas", requireAuth, requireModulo("iot", "ESCRITURA
 
 proyectosRouter.patch("/tareas/:id", requireAuth, requireModulo("iot", "ESCRITURA"), async (req, res) => {
   const id = Number(req.params.id);
-  const { titulo, descripcion, estado, asignadoId, fechaLimite, orden } = req.body ?? {};
+  const { titulo, descripcion, estado, fechaCambioEstado, asignadoId, fechaLimite, orden } = req.body ?? {};
   if (estado !== undefined && !ESTADOS_TAREA.includes(estado)) {
     return res.status(400).json({ error: `estado debe ser uno de: ${ESTADOS_TAREA.join(", ")}` });
   }
@@ -589,12 +624,22 @@ proyectosRouter.patch("/tareas/:id", requireAuth, requireModulo("iot", "ESCRITUR
   const anterior = await prisma.proyectoTarea.findUnique({ where: { id } });
   if (!anterior) return res.status(404).json({ error: "Tarea no encontrada" });
 
+  // fechaCambioEstado se re-sella automáticamente al cambiar de columna (drag & drop),
+  // salvo que el cliente la envíe explícitamente (edición manual desde el modal).
+  let fechaCambioEstadoFinal: Date | null | undefined;
+  if (fechaCambioEstado !== undefined) {
+    fechaCambioEstadoFinal = fechaCambioEstado ? new Date(fechaCambioEstado) : null;
+  } else if (estado !== undefined && estado !== anterior.estado) {
+    fechaCambioEstadoFinal = new Date();
+  }
+
   const actualizada = await prisma.proyectoTarea.update({
     where: { id },
     data: {
       ...(titulo !== undefined ? { titulo } : {}),
       ...(descripcion !== undefined ? { descripcion: descripcion || null } : {}),
       ...(estado !== undefined ? { estado } : {}),
+      ...(fechaCambioEstadoFinal !== undefined ? { fechaCambioEstado: fechaCambioEstadoFinal } : {}),
       ...(asignadoId !== undefined ? { asignadoId: asignadoId ? Number(asignadoId) : null } : {}),
       ...(fechaLimite !== undefined ? { fechaLimite: fechaLimite ? new Date(fechaLimite) : null } : {}),
       ...(orden !== undefined ? { orden: Number(orden) } : {}),

@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import type { Modulo } from "../types";
 import { MODULO_LABEL } from "../types";
+import { ROL_COLOR_SOLIDO, ROL_LABEL } from "../roles";
 
 // Tema persistente: localStorage manda; si no hay preferencia guardada se usa
 // la del sistema operativo.
@@ -74,17 +75,6 @@ const ICONS: Record<Modulo, ReactNode> = {
   ),
 };
 
-const ROL_COLOR: Record<string, string> = {
-  gerencia: "bg-emerald-600",
-  jefatura: "bg-amber-600",
-  coordinador: "bg-sky-600",
-  bodega: "bg-orange-500",
-  contabilidad: "bg-teal-600",
-  desarrollo: "bg-violet-600",
-  firmware: "bg-pink-600",
-  tecnico: "bg-zinc-600",
-};
-
 function initials(nombre: string) {
   const partes = nombre.trim().split(/\s+/);
   return ((partes[0]?.[0] ?? "") + (partes[1]?.[0] ?? "")).toUpperCase();
@@ -96,7 +86,7 @@ export default function Header({
   onLogout,
 }: {
   modulos: Modulo[];
-  usuario: { nombre: string; rol: string };
+  usuario: { nombre: string; roles: string[] };
   onLogout: () => void;
 }) {
   return (
@@ -138,12 +128,14 @@ export default function Header({
       <div className="flex items-center gap-3 shrink-0">
         <BotonTema />
         <div className="flex items-center gap-2.5">
-          <div className={`w-8 h-8 rounded-full ${ROL_COLOR[usuario.rol] ?? "bg-neutral-500"} flex items-center justify-center text-[11px] font-bold text-white`}>
+          <div className={`w-8 h-8 rounded-full ${ROL_COLOR_SOLIDO[usuario.roles[0]] ?? "bg-neutral-500"} flex items-center justify-center text-[11px] font-bold text-white`}>
             {initials(usuario.nombre)}
           </div>
           <div className="hidden sm:block min-w-0">
             <p className="text-sm font-semibold text-neutral-800 truncate leading-tight">{usuario.nombre}</p>
-            <p className="text-[11px] text-neutral-500 truncate capitalize leading-tight">{usuario.rol}</p>
+            <p className="text-[11px] text-neutral-500 truncate leading-tight">
+              {usuario.roles.map((r) => ROL_LABEL[r] ?? r).join(" · ")}
+            </p>
           </div>
         </div>
         <button

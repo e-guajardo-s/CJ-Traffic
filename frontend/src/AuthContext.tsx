@@ -7,7 +7,8 @@ type Permisos = Record<string, Nivel>;
 interface Usuario {
   id: number;
   nombre: string;
-  rol: string;
+  roles: string[];
+  areas: string[];
 }
 
 interface AuthState {

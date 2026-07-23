@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
 import { useAuth } from "../../AuthContext";
 import StatCard from "../../components/StatCard";
+import { esGerencia, esJefatura } from "../../roles";
 
 // ────────── Types ──────────
 
@@ -88,7 +89,7 @@ function tiempoRelativo(iso: string): string {
 
 export default function PanelSubgerente() {
   const { usuario } = useAuth();
-  const puedeVerCostos = usuario?.rol === "gerencia" || usuario?.rol === "jefatura";
+  const puedeVerCostos = esGerencia(usuario?.roles) || esJefatura(usuario?.roles);
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -163,10 +164,13 @@ export default function PanelSubgerente() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Salud de proyectos por fase */}
         <div className="lg:col-span-2 bg-white border border-neutral-200 rounded-xl overflow-hidden">
-          <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+          <div className="px-5 pt-5 pb-2 flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500">Salud de proyectos por fase</h3>
             <Link to="/proyectos_empresa/tablero" className="text-[11px] font-semibold text-orange-600 hover:underline">Ver listado →</Link>
           </div>
+          <p className="px-5 pb-4 text-[11px] text-neutral-500 leading-relaxed">
+            La <strong>Salud del Proyecto</strong> evalúa el progreso general frente a los riesgos detectados en cada fase operativa (Inicio, Gestión, Ejecución, Cierre). Un proyecto se marca "En Riesgo" o "Bloqueado" si presenta atrasos críticos en permisos externos o la programación se detiene, alertando a la jefatura para tomar acción.
+          </p>
           {saludProyectos.length === 0 ? (
             <p className="text-sm text-neutral-400 px-5 pb-6">No hay proyectos activos.</p>
           ) : (

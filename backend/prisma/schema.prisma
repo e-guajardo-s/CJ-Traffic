@@ -15,10 +15,10 @@ datasource db {
 // Obras/Bodega en Fase 1. Por ahora alcanza para relacionar autoría.
 
 model Rol {
-  id       Int                @id @default(autoincrement())
-  nombre   String             @unique
-  usuarios Usuario[]
-  permisos RolModuloPermiso[]
+  id          Int                @id @default(autoincrement())
+  nombre      String             @unique
+  usuariosRol UsuarioRol[]
+  permisos    RolModuloPermiso[]
 }
 
 model Usuario {
@@ -26,8 +26,10 @@ model Usuario {
   nombre       String
   email        String @unique
   passwordHash String
-  rol          Rol    @relation(fields: [rolId], references: [id])
-  rolId        Int
+
+  roles UsuarioRol[]
+  areas UsuarioArea[]
+  avisos Aviso[] @relation("AvisoAutor")
 
   programacionesSubidas Programacion[]  @relation("SubidoPor")
   feedbacks             Feedback[]
@@ -49,6 +51,10 @@ model Usuario {
   solicitudesMaterial   SolicitudMaterial[] @relation("SolicitudMaterialAutor")
   programacionesObra    ProgramacionObra[]  @relation("ProgramacionObraAutor")
   obraBitacoras         ObraBitacora[]      @relation("ObraBitacoraAutor")
+  obraSubtareaNotas     ObraSubtareaNota[]  @relation("ObraSubtareaNotaAutor")
+  obraSubtareasAsignadas ObraSubtarea[]     @relation("ObraSubtareaAsignado")
+  obraCoordinacionesExtra ObraCoordinadorExtra[] @relation("ObraCoordinadorExtra")
+  reportesDiarios       ReporteDiario[]     @relation("ReporteDiarioAutor")
 }
 
 // ───────────────────────── RBAC (§7, §9 informe) ─────────────────────────
@@ -78,6 +84,53 @@ model RolModuloPermiso {
   nivel    NivelAcceso @default(OCULTO)
 
   @@unique([rolId, moduloId])
+}
+
+// Un usuario puede tener más de un rol (ej. Elías es "desarrollo" pero también
+// trabaja en Mantención). Los permisos por módulo se agregan por el MÁXIMO
+// nivel entre todos los roles del usuario (ver /me/permissions).
+model UsuarioRol {
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId Int
+  rol       Rol     @relation(fields: [rolId], references: [id], onDelete: Cascade)
+  rolId     Int
+
+  @@id([usuarioId, rolId])
+}
+
+// Área organizativa (ej. "Obras", "Mantención") — etiqueta de agrupación sin
+// efecto en RBAC, usada para dirigir avisos a un grupo de trabajo.
+model Area {
+  id       Int           @id @default(autoincrement())
+  nombre   String        @unique
+  usuarios UsuarioArea[]
+}
+
+model UsuarioArea {
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId Int
+  area      Area    @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  areaId    Int
+
+  @@id([usuarioId, areaId])
+}
+
+// Avisos del panel de administración: banners persistentes o popups de una
+// sola vez, dirigidos a todos, a un área, o a un rol específico.
+model Aviso {
+  id              Int       @id @default(autoincrement())
+  titulo          String
+  cuerpo          String
+  tipo            String    @default("INFO") // INFO | MANTENCION | ADVERTENCIA | URGENTE
+  presentacion    String    @default("BANNER") // BANNER | POPUP
+  audienciaTipo   String    @default("TODOS") // TODOS | AREA | ROL
+  audienciaRef    String? // nombre de área o de rol, cuando audienciaTipo != TODOS
+  fechaProgramada DateTime? // ej. fecha de una mantención programada
+  vigenteHasta    DateTime? // null = sin expiración
+  activo          Boolean   @default(true)
+  autor           Usuario   @relation("AvisoAutor", fields: [autorId], references: [id])
+  autorId         Int
+  createdAt       DateTime  @default(now())
 }
 
 // ───────────────────────── Área de Desarrollo (piloto) ─────────────────
@@ -287,6 +340,7 @@ enum EstadoTarea {
   EN_PROGRESO
   EN_REVISION
   HECHO
+  BLOQUEADO
 }
 
 model ProyectoTarea {
@@ -296,6 +350,7 @@ model ProyectoTarea {
   titulo      String
   descripcion String?
   estado      EstadoTarea @default(POR_HACER)
+  fechaCambioEstado DateTime? @default(now()) // fecha en que entró a su fase/columna actual; editable manualmente
   orden       Int         @default(0) // orden dentro de su columna, para drag & drop
   asignado    Usuario?    @relation("ProyectoTareaAsignado", fields: [asignadoId], references: [id])
   asignadoId  Int?
@@ -364,7 +419,9 @@ model IncidenciaTroubleshooting {
   titulo       String // Ej: "Falla de lectura RS485 en sensor de flujo"
   tipo         String // "HARDWARE" o "SOFTWARE"
   descripcion  String // Detalles de la falla
+  fechaDescripcion DateTime? // Fecha en que ocurrió/se detectó la falla (distinta de `fecha`, que es el registro del ingreso)
   accionTomada String? // Solución temporal o definitiva (opcional)
+  fechaAccion  DateTime? // Fecha en que se aplicó la acción/solución
   estado       String // "ABIERTO", "EN_PROCESO", "SOLUCIONADO"
   fecha        DateTime @default(now())
 
@@ -423,6 +480,7 @@ model Obra {
   nombre     String // Ej: "Semáforo Av. Kennedy / Manquehue"
   cliente    String
   tipoObra   String // "NUEVO_SEMAFORO", "MODIFICACION", "CCTV", etc.
+  tipoObraDetalle String? // descripción libre cuando tipoObra = "OTRO"
 
   // Fase de alto nivel para filtros generales (Inicio, Gestión, Ejecución, Cierre)
   faseGlobal FaseObra @default(INICIO)
@@ -440,14 +498,105 @@ model Obra {
   fechaInicio  DateTime?
   fechaEntrega DateTime? // Deadline contractual
 
-  // 1 Obra tiene muchos Tracks asíncronos y un Hilo Histórico (Bitácora)
+  // Elementos del Proyecto
   tracks         ObraTrack[]
   bitacora       ObraBitacora[]
   solicitudes    SolicitudMaterial[]
   programaciones ProgramacionObra[]
+  subcontratos   Subcontrato[]
   equipamiento   EquipamientoTerreno[]
+  coordinadoresExtra ObraCoordinadorExtra[]
+  reportesDiarios ReporteDiario[]
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
+}
+
+model Subcontrato {
+  id             Int                  @id @default(autoincrement())
+  obra           Obra                 @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  obraId         Int
+  especialidad   String // ej: "Obras Civiles", "Estructuras Metálicas"
+  empresa        String // ej: "Constructora ABC"
+  montoContrato  Decimal              @db.Decimal(12, 2) // "Total Obra" (neto) de la carátula
+  numeroOc       String? // N° de Orden de Compra (carátula EEPP)
+  montoAnticipo  Decimal?             @db.Decimal(12, 2) // Anticipo entregado al inicio del contrato
+  devAnticipoPct Decimal              @default(0) @db.Decimal(5, 4) // ej. 0.30 → se descuenta de cada EP
+  retencionPct   Decimal              @default(0) @db.Decimal(5, 4) // ej. 0.05 → se descuenta de cada EP
+  ivaPct         Decimal              @default(0.19) @db.Decimal(5, 4)
+  // El "plan" de un contrato siempre es 100% (se cumple el contrato completo);
+  // no tiene sentido una curva planificada aparte. El avance real se ve por
+  // Estado de Pago (`EstadoPago.avanceAcumuladoPct`) — este campo es solo un
+  // espejo rápido del acumulado del último EP importado, para listados.
+  avanceReal    Decimal              @default(0) @db.Decimal(5, 2) // Porcentaje real 0-100 (espejo del último EP)
+  observaciones  String?
+  estadosPago    EstadoPago[]
+  partidas       PartidaPresupuesto[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+}
+
+// Presupuesto oficial del subcontrato, línea a línea (hoja "Detalle EP" del
+// Excel). Las filas de capítulo (ej. "2.0 INSTALACIONES...") no tienen
+// unidad/cantidad/precio, solo agrupan visualmente a las partidas siguientes.
+model PartidaPresupuesto {
+  id             Int         @id @default(autoincrement())
+  subcontrato    Subcontrato @relation(fields: [subcontratoId], references: [id], onDelete: Cascade)
+  subcontratoId  Int
+  orden          Int         @default(0)
+  esCapitulo     Boolean     @default(false)
+  itemNumero     String? // ej. "2.0" (solo en filas de capítulo)
+  descripcion    String
+  unidad         String?
+  cantidad       Decimal?    @db.Decimal(12, 2)
+  precioUnitario Decimal?    @db.Decimal(12, 2)
+  total          Decimal?    @db.Decimal(12, 2)
+
+  avances AvancePartidaEP[]
+}
+
+model EstadoPago {
+  id                 Int         @id @default(autoincrement())
+  subcontrato        Subcontrato @relation(fields: [subcontratoId], references: [id], onDelete: Cascade)
+  subcontratoId      Int
+  numeroEp           String // ej: "EP-003"
+  fechaEp            DateTime
+  emisor             String? // quien emite el EP (carátula EEPP)
+  // Carátula financiera del EP. `montoEp` se mantiene como el monto genérico
+  // (compatibilidad con EP creados sin detalle de carátula); cuando hay
+  // detalle, `totalPagar` es el monto real que se suma al costoAcumulado.
+  montoEp            Decimal     @db.Decimal(12, 2)
+  subtotal           Decimal?    @db.Decimal(12, 2) // Bruto del período, antes de descuentos
+  devAnticipo        Decimal?    @db.Decimal(12, 2) // Descuento por devolución de anticipo (negativo)
+  retencion          Decimal?    @db.Decimal(12, 2) // Descuento por retención (negativo)
+  montoNeto          Decimal?    @db.Decimal(12, 2) // subtotal + devAnticipo + retencion (sin IVA)
+  iva                Decimal?    @db.Decimal(12, 2)
+  totalPagar         Decimal?    @db.Decimal(12, 2) // montoNeto + iva — lo que efectivamente se paga
+  avanceAcumuladoPct Decimal?    @db.Decimal(6, 4) // % ejecutado acumulado a la fecha de este EP
+  estado             String // "APROBADO", "EN REVISIÓN", "PAGADO", "PENDIENTE", "SIN INICIO"
+  observaciones      String?
+  archivoUrl         String? // Excel original del EP, si se importó o se adjuntó
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  avancesPartida AvancePartidaEP[]
+}
+
+// Avance de cada partida del presupuesto en un EP específico (hoja "Detalle
+// EP": columnas Avance % y Avance $ — Acumulado/Anterior/Actual).
+model AvancePartidaEP {
+  id                 Int                @id @default(autoincrement())
+  estadoPago         EstadoPago         @relation(fields: [estadoPagoId], references: [id], onDelete: Cascade)
+  estadoPagoId       Int
+  partida            PartidaPresupuesto @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+  partidaId          Int
+  avanceAcumuladoPct Decimal            @default(0) @db.Decimal(6, 4)
+  avanceAnteriorPct  Decimal            @default(0) @db.Decimal(6, 4)
+  avanceActualPct    Decimal            @default(0) @db.Decimal(6, 4)
+  montoAcumulado     Decimal            @default(0) @db.Decimal(12, 2)
+  montoAnterior      Decimal            @default(0) @db.Decimal(12, 2)
+  montoActual        Decimal            @default(0) @db.Decimal(12, 2)
+
+  @@unique([estadoPagoId, partidaId])
 }
 
 enum FaseObra {
@@ -464,6 +613,7 @@ model ObraTrack {
   id                  Int       @id @default(autoincrement())
   obraId              Int
   tipo                TipoTrack // PERMISOS, ADQUISICIONES, PROGRAMACION, INSTALACION
+  nombre              String? // nombre libre cuando tipo = OTRO (línea de trabajo personalizada)
   estadoActual        String // El estado específico del track (ej. "EN_TRAMITE")
   responsableId       Int? // Quién tiene la "pelota" ahora mismo en este track
   ultimaActualizacion DateTime  @default(now())
@@ -477,17 +627,42 @@ model ObraTrack {
 // Documentan los subprocesos del wireframe (ej. permisos: preparar expediente,
 // ingresar, respuesta, aprobado) para que cualquiera retome el track.
 model ObraSubtarea {
-  id        Int         @id @default(autoincrement())
-  track     ObraTrack   @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  trackId   Int
-  titulo    String
-  estado    EstadoTarea @default(POR_HACER)
-  orden     Int         @default(0) // orden dentro de su columna
-  notas     String? // observaciones / notas de la subtarea (texto libre)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id               Int               @id @default(autoincrement())
+  track            ObraTrack         @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  trackId          Int
+  titulo           String
+  tipo             String? // Ej. TECNICA, ADMINISTRATIVA, TERRENO, REUNION, COMPRA
+  prioridad        PrioridadSubtarea @default(MEDIA)
+  fechaInicio      DateTime?
+  fechaVencimiento DateTime?
+  estado           EstadoTarea       @default(POR_HACER)
+  orden            Int               @default(0) // orden dentro de su columna
+  notas            String? // observaciones / notas de la subtarea (texto libre)
+  asignado         Usuario?          @relation("ObraSubtareaAsignado", fields: [asignadoId], references: [id])
+  asignadoId       Int?
+  fechaEstimadaDesbloqueo DateTime? // solo relevante cuando estado = BLOQUEADO
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  archivos ObraSubtareaArchivo[]
+  archivos      ObraSubtareaArchivo[]
+  observaciones ObraSubtareaNota[]
+}
+
+enum PrioridadSubtarea {
+  BAJA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+model ObraSubtareaNota {
+  id         Int          @id @default(autoincrement())
+  subtarea   ObraSubtarea @relation(fields: [subtareaId], references: [id], onDelete: Cascade)
+  subtareaId Int
+  autor      Usuario      @relation("ObraSubtareaNotaAutor", fields: [autorId], references: [id])
+  autorId    Int
+  contenido  String
+  createdAt  DateTime     @default(now())
 }
 
 // Documentación adjunta a una subtarea del kanban (planos, cotizaciones, fotos…).
@@ -507,6 +682,14 @@ enum TipoTrack {
   PROGRAMACION
   INSTALACION
   COMUNICACIONES
+  ENLACES
+  EMPALMES
+  HITOS_UOCT
+  SINTONIA_FINA
+  TRASPASOS_MANTENCION
+  CANALIZACION
+  OBRAS_CIVILES
+  OTRO
 }
 
 // ───────────────────────── LOGÍSTICA & BODEGA ─────────────────────────
@@ -588,4 +771,43 @@ model ObraBitacora {
 
   obra  Obra    @relation(fields: [obraId], references: [id], onDelete: Cascade)
   autor Usuario @relation("ObraBitacoraAutor", fields: [autorId], references: [id])
+}
+
+// Coordinador adicional de una obra: transferencia TEMPORAL (releva al
+// coordinador principal por un período) o PARALELO (comparten la gestión).
+// Mientras esté `activo` y no haya vencido `vigenteHasta`, el coordinador
+// extra tiene los mismos permisos de gestión sobre TODOS los tracks de la
+// obra que el coordinador principal (ver coordinadoresEfectivos() en obras.ts).
+model ObraCoordinadorExtra {
+  id            Int       @id @default(autoincrement())
+  obra          Obra      @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  obraId        Int
+  coordinador   Usuario   @relation("ObraCoordinadorExtra", fields: [coordinadorId], references: [id])
+  coordinadorId Int
+  tipo          String // "TEMPORAL" | "PARALELO"
+  vigenteHasta  DateTime? // null = sin término definido
+  activo        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+}
+
+// Parte diario de terreno: registro ágil (no texto libre extenso) que
+// completan los trabajadores para dejar constancia de la jornada. Distinto
+// de ObraBitacora (eventos del sistema) y de ObraSubtareaNota (hilo de
+// comentarios de una subtarea puntual) — este es el reporte operativo diario
+// que pidió el subgerente, pensado para exportar a PDF.
+model ReporteDiario {
+  id               Int      @id @default(autoincrement())
+  obra             Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  obraId           Int
+  autor            Usuario  @relation("ReporteDiarioAutor", fields: [autorId], references: [id])
+  autorId          Int
+  fecha            DateTime @default(now()) // día que reporta (no necesariamente "hoy")
+  trackId          Int? // línea de trabajo asociada, opcional
+  personal         Int? // nº de personas en terreno
+  clima            String? // "DESPEJADO" | "NUBLADO" | "LLUVIA" | "VIENTO"
+  horasTrabajadas  Decimal? @db.Decimal(5, 2)
+  trabajoRealizado String // resumen breve y obligatorio
+  materiales       String?
+  observaciones    String?
+  createdAt        DateTime @default(now())
 }
